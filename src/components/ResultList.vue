@@ -6,8 +6,7 @@
     item-key="id"
     show-expand
     single-expand
-    show-select
-    sort-by="lastOccurence"
+    sort-by="alert.startsAt"
     sort-desc
     :loading="loading"
     :search="search"
@@ -58,7 +57,7 @@
 
       <v-navigation-drawer v-model="showDrawer" app>
         <div class="pa-2">
-          <v-btn @click="startDateTime=null;endDateTime=null;searchLogTypes=[];teams=[];statuses=[]" target="_blank" text>
+          <v-btn @click="startDateTime=null;endDateTime=null;searchSeverity=[];teams=[];statuses=[]" target="_blank" text>
             <span class="mr-2">Clear</span>
             <v-icon>mdi-notification-clear-all</v-icon>
           </v-btn>
@@ -66,7 +65,7 @@
         <div class="pa-2">
           <v-card class="px-2 py-0">
             <v-card-text>
-              <v-select multiple :items="logTypes" v-model="searchLogTypes" label="Log Types"></v-select>
+              <v-select multiple :items="logTypes" v-model="searchSeverity" label="Severity"></v-select>
             </v-card-text>
           </v-card>
         </div>
@@ -76,9 +75,8 @@
             <v-card-title class="caption">Status</v-card-title>
             <v-card-text>
               <v-checkbox class="my-0 py-0" v-model="statuses" label="NEW" value="NEW"></v-checkbox>
-              <v-checkbox class="my-0 py-0" v-model="statuses" label="TRIAGE" value="TRIAGE"></v-checkbox>
-              <v-checkbox class="my-0 py-0" v-model="statuses" label="WATCH" value="WATCH"></v-checkbox>
-              <v-checkbox class="my-0 py-0" v-model="statuses" label="HIDE" value="HIDE"></v-checkbox>
+              <v-checkbox class="my-0 py-0" v-model="statuses" label="ACKED" value="ACKED"></v-checkbox>
+              <v-checkbox class="my-0 py-0" v-model="statuses" label="RESOLVED" value="RESOLVED"></v-checkbox>
               <div v-if="showDates" class="px-2">
                 <v-datetime-picker label="Start Date" v-model="startDateTime">
                   <p slot="dateIcon">Date</p>
@@ -183,7 +181,7 @@
               </span>
             -->
 
-
+            <!--
               <span>
                 <v-btn
                   :disabled="deleteDisabled"
@@ -197,6 +195,7 @@
                   </div>
                 </v-btn>
               </span>
+            -->
             <!--
               <span>
                 <v-btn :disabled="deleteDisabled" @click.stop="resetCount()" target="_blank" text>
@@ -207,6 +206,7 @@
                 </v-btn>
               </span>
             -->
+            <!--
               <span>
                 <v-btn :disabled="deleteDisabled" @click.stop="deleteRecord()" target="_blank" text>
                   <div class="text-lg-right">
@@ -215,7 +215,7 @@
                   </div>
                 </v-btn>
               </span>
-              
+            -->
             </v-row>
           </v-container>
         </v-app-bar>
@@ -334,72 +334,55 @@
             copyDialog.title='Message Details';
             copyDialog.dialog = true;" 
           style="cursor: pointer; max-height: 65px; ">
-          <v-icon color=red class="pb-0" v-if="item.status == 'NEW'">mdi-new-box</v-icon> 
-          <v-icon color=orange class="pb-0" v-if="item.status == 'WATCH'">mdi-eye</v-icon> 
+          <v-icon color=blue class="pb-0" v-if="item.status == 'NEW'">mdi-new-box</v-icon> 
+          <v-icon color=green class="pb-0" v-if="item.status == 'ACKED'">mdi-account-eye</v-icon> 
+          <v-icon color=grey class="pb-0" v-if="item.status == 'RESOLVED'">mdi-history</v-icon> 
           {{item.alert.labels.alertname}}: {{getSummaryHeader(item.alert.annotations.summary)}}</div>
       
     </template>
 
     <template v-slot:[`item.actions`]="{ item }">
-      <v-container class="pa-0">
+      <v-container style="cell-padding: 0;">
         <v-row dense>
-          <v-col>
+          <v-col style="max-width: 75px;">
             <v-btn-toggle v-model="item.status" rounded>
-              <v-btn
-                value="TRIAGE"
+              <v-btn v-if="item.status == 'NEW'" 
+                value="ACK"
                 x-small
-                class="mdi-format-align-left yellow lighten-5"
-                @click="mark(item, 'TRIAGE')"
-              >TRIAGE</v-btn>
-              <v-btn
-                value="WATCH"
-                x-small
-                class="mdi-format-align-center red lighten-5"
-                @click="mark(item, 'WATCH')"
-              >WATCH</v-btn>
-              <v-btn
-                value="HIDE"
-                x-small
-                class="mdi-format-align-right grey lighten-5"
-                @click="mark(item, 'HIDE')"
-              >HIDE</v-btn>
-            </v-btn-toggle>
-          </v-col>
-        </v-row>
-
-        <!--
-        <v-row dense>
-          <v-col>
-            <v-btn-toggle v-model="item.teams" rounded multiple>
-              <v-btn
-                value="LIVE"
+                class="mdi-format-align-left green lighten-5"
+                @click="mark(item, 'ACKED')"
+              >ACK</v-btn>
+              <v-btn v-if="item.status == 'ACKED'" 
+                value="UNACK"
                 x-small
                 class="mdi-format-align-left blue lighten-5"
-                @click="setTeam(item)"
-              >LIVE</v-btn>
-              <v-btn
-                value="OPS"
+                @click="mark(item, 'NEW')"
+              >UNACK</v-btn>
+              <v-btn v-if="item.status == 'RESOLVED'" 
+                value="DELETE"
                 x-small
-                class="mdi-format-align-center blue lighten-5"
-                @click="setTeam(item)"
-              >OPS</v-btn>
-              <v-btn
-                value="MISSION"
-                x-small
-                class="mdi-format-align-center blue lighten-5"
-                @click="setTeam(item)"
-              >MISSION</v-btn>
-              <v-btn
-                value="DEV"
-                x-small
-                class="mdi-format-align-right blue lighten-5"
-                @click="setTeam(item)"
-              >DEV</v-btn>
+                class="mdi-format-align-center red lighten-5"
+                @click="deleteRecord(item.id);"
+              >DELETE</v-btn>
             </v-btn-toggle>
           </v-col>
+          <v-col style="max-width: 75px;">
+            <v-btn-toggle v-model="item.teams" rounded multiple>
+              <v-btn
+                value="NOTE"
+                x-small
+                class="mdi-format-align-center yellow lighten-5"
+                @click="note.dialog = true;note.id = item.id;note.message='';note.prefix='Note';note.caption='Add a note to the record';"
+              >NOTE</v-btn>
+
+            </v-btn-toggle>
+          </v-col>
+
         </v-row>
-        -->
+
+        
       </v-container>
+
     </template>
   </v-data-table>
 </template>

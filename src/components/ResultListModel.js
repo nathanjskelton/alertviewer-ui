@@ -15,7 +15,7 @@ export default {
       teams: [],
       sessionId: null,
       logTypes: [],
-      searchLogTypes: [],
+      searchSeverity: [],
       endDateTime: new Date(),
       search: "",
       regexSuggestion: "",
@@ -110,7 +110,7 @@ export default {
         this.refreshStyle = "orange";
       }
     },
-    searchLogTypes: {
+    searchSeverity: {
       handler() {
         this.refreshStyle = "orange";
       }
@@ -132,9 +132,9 @@ export default {
         this.endDateTime = Date.parse(this.query.endDateTime);
 
       if (this.query.type != null && Array.isArray(this.query.type)) {
-        this.searchLogTypes = this.query.type;
+        this.searchSeverity = this.query.type;
       } else if (this.query.type) {
-        this.searchLogTypes = [ this.query.type ];
+        this.searchSeverity = [ this.query.type ];
       }
 
       if (this.query.statuses != null && Array.isArray(this.query.statuses)) {
@@ -257,6 +257,8 @@ export default {
       }, 100);
     },
     handleError(error) {
+      this.$emit("alert", error, "error");
+      /*
       if (error.response.data.message) {
         this.$emit("alert", error.response.data.message, "error");
       } else if (error.response.data) {
@@ -264,6 +266,7 @@ export default {
       } else {
         this.$emit("alert", error, "error");
       }
+      */
     },
     onSuccess(response) {
       if (response && response.data && response.data.message) {
@@ -369,9 +372,9 @@ export default {
           });
       }, 100);
     },
-    deleteRecord() {
+    deleteRecord(id) {
       axios
-        .delete(this.baseUrl + "delete?id=" + this.selected[0].id)
+        .delete(this.baseUrl + "delete?id=" + id)
         .then(response => {
           this.onSuccess(response);
           this.fetchData();
@@ -467,8 +470,8 @@ export default {
         delim = "&";
       }
 
-      if (this.searchLogTypes != null && this.searchLogTypes.length > 0) {
-        urlString = urlString + delim + "type=" + this.searchLogTypes;
+      if (this.searchSeverity != null && this.searchSeverity.length > 0) {
+        urlString = urlString + delim + "type=" + this.searchSeverity;
         delim = "&";
       }
       
@@ -481,12 +484,12 @@ export default {
           .then(response => {
             this.info = response.data.payload;
             this.info.forEach(value => {
-              this.logTypes.push(value.logType);
+              this.logTypes.push(value.alert.labels.severity);
             })
             if (this.statuses.includes("HIDE")) {
               this.router.replace({
                 query: {
-                  type: this.searchLogTypes,
+                  type: this.searchSeverity,
                   start: this.startDateTime.toISOString(),
                   end: this.endDateTime.toISOString(),
                   statuses: this.statuses,
@@ -496,7 +499,7 @@ export default {
             } else {
               this.router.replace({
                 query: {
-                  type: this.searchLogTypes,
+                  type: this.searchSeverity,
                   statuses: this.statuses,
                   teams: this.teams
                 }
@@ -505,6 +508,7 @@ export default {
             this.loading = false;
           })
           .catch(error => {
+            console.log(error);
             this.handleError(error);
             this.loading = false;
           })
