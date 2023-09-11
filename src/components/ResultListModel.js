@@ -64,22 +64,22 @@ export default {
           sortable: true,
           value: "duration",
           filterable: false,
-          width: 110
+          width: 125
         },
         {
-          text: "Type",
+          text: "Severity",
           align: "center",
           sortable: true,
-          value: "severity",
+          value: "alert.labels.severity",
           filterable: true,
-          width: 90
+          width:125
         },
         {
           text: "Message",
           align: "start",
           sortable: true,
-          value: "message",
-          filterable: true
+          value: "alert.labels.alertname",
+          filterable: true,
         },
         {
           text: "Actions",
@@ -162,6 +162,10 @@ export default {
     }, 15000);
   },
   methods: {
+    customSort(a, b) {
+        console.log("a="+a);
+        console.log("b="+b);
+    },
     getSummaryHeader(summary) {
         return (""+summary).split('\n')[0];
     },
@@ -347,14 +351,15 @@ export default {
         .put(this.baseUrl + "mark?id=" + item.id + "&status=" + value)
         .then(response => {
           this.onSuccess(response);
-          console.log("THE STATUS IS "+value);
-          if (value == 'HIDE') {
-            this.note.id = item.id;
-            this.note.message = "";
-            this.note.caption = "Enter a reason for hiding this record";
-            this.note.prefix = "Hide Record"
-            this.note.dialog = true;
-          }
+          this.fetchData();
+          //console.log("THE STATUS IS "+value);
+          //if (value == 'HIDE') {
+          //  this.note.id = item.id;
+          //  this.note.message = "";
+          //  this.note.caption = "Enter a reason for hiding this record";
+          //  this.note.prefix = "Hide Record"
+          //  this.note.dialog = true;
+          //}
         })
         .catch(error => {
           this.handleError(error);

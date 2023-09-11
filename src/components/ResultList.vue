@@ -6,14 +6,14 @@
     item-key="id"
     show-expand
     single-expand
-    sort-by="alert.startsAt"
+    :sort-by="['duration', 'alert.labels.alertname']"
+    multi-sort
     sort-desc
     :loading="loading"
     :search="search"
     class="elevation-1"
-    v-model="selected"
     :item-class="function(item) { 
-      if (item.status == 'UNUSED') return 'red lighten-3';
+      if (item.status == 'RESOLVED') return 'grey lighten-3';
     }"
     @item-selected="itemSelected()"
     @toggle-select-all="itemSelected()"
@@ -308,7 +308,7 @@
       <v-chip small :color="getLastOccColor(item)">{{ item.duration }}</v-chip>
     </template>
 
-    <template v-slot:[`item.severity`]="{ item }">
+    <template v-slot:[`item.alert.labels.severity`]="{ item }">
       <v-chip small :color="getSeverityColor(item)">{{ item.alert.labels.severity }}</v-chip>
     </template>
 
@@ -328,7 +328,8 @@
     </template>
   -->
 
-    <template v-slot:[`item.message`]="{ item }">
+  
+    <template v-slot:[`item.alert.labels.alertname`]="{ item }">
       <div  @click="
             copyDialog.text = item.alert.annotations.summary;
             copyDialog.title='Message Details';
@@ -340,6 +341,8 @@
           {{item.alert.labels.alertname}}: {{getSummaryHeader(item.alert.annotations.summary)}}</div>
       
     </template>
+
+  
 
     <template v-slot:[`item.actions`]="{ item }">
       <v-container style="cell-padding: 0;">
