@@ -62,7 +62,7 @@ export default {
           text: "Duration",
           align: "center",
           sortable: true,
-          value: "duration",
+          value: "alert.startsAt",
           filterable: false,
           width: 125
         },

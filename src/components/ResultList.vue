@@ -6,7 +6,7 @@
     item-key="id"
     show-expand
     single-expand
-    :sort-by="['duration', 'alert.labels.alertname']"
+    :sort-by="['alert.startsAt', 'alert.labels.alertname']"
     multi-sort
     sort-desc
     :loading="loading"
@@ -304,7 +304,7 @@
     </template>
     -->
 
-    <template v-slot:[`item.duration`]="{ item }">
+    <template v-slot:[`item.alert.startsAt`]="{ item }">
       <v-chip small :color="getLastOccColor(item)">{{ item.duration }}</v-chip>
     </template>
 
