@@ -4,7 +4,8 @@ import router from "./router";
 import vuetify from "./plugins/vuetify";
 
 Vue.config.productionTip = true;
-Vue.prototype.baseUrl = "https://localhost:8085/";
+Vue.prototype.baseUrl = process.env.VUE_APP_SERVER_URL;
+//Vue.prototype.baseUrl = "https://localhost:8085/";
 
 new Vue({
   router,
