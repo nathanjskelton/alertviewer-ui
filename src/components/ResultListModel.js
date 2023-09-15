@@ -15,7 +15,9 @@ export default {
       teams: [],
       sessionId: null,
       logTypes: [],
+      gmInstances: [],
       searchSeverity: [],
+      searchGmInstance: [],
       endDateTime: new Date(),
       search: "",
       regexSuggestion: "",
@@ -64,13 +66,45 @@ export default {
           sortable: true,
           value: "alert.startsAt",
           filterable: false,
-          width: 125
+          width: 120
         },
         {
           text: "Severity",
           align: "center",
           sortable: true,
           value: "alert.labels.severity",
+          filterable: true,
+          width:120 
+        },
+        {
+          text: "GM Instance",
+          align: "center",
+          sortable: true,
+          value: "alert.labels.gm_instance",
+          filterable: false,
+          width:125
+        },
+        {
+          text: "System",
+          align: "center",
+          sortable: true,
+          value: "alert.labels.system",
+          filterable: true,
+          width:125
+        },
+        {
+          text: "Service",
+          align: "center",
+          sortable: true,
+          value: "alert.annotations.service",
+          filterable: true,
+          width:125
+        },
+        {
+          text: "Instance",
+          align: "center",
+          sortable: true,
+          value: "alert.labels.instance",
           filterable: true,
           width:125
         },
@@ -82,11 +116,11 @@ export default {
           filterable: true,
         },
         {
-          text: "Actions",
+          text: "",
           align: "start",
           sortable: false,
           value: "actions",
-          width: 350,
+          width: 50,
           filterable: false
         }
       ],
@@ -97,24 +131,41 @@ export default {
   watch: {
     statuses: {
       handler() {
-        this.refreshStyle = "orange";
-        if (this.statuses.includes("HIDE")) {
+        if (this.statuses.includes("RESOLVED")) {
           this.showDates = true;
         } else {
           this.showDates = false;
         }
-      }
-    },
-    teams: {
-      handler() {
-        this.refreshStyle = "orange";
+
+        if (this.statuses == null || this.statuses.length == 0) {
+          this.statuses.push('NEW');
+        }
+
+        if (this.autoRefresh) {
+          this.fetchData();
+        } else {
+          this.refreshStyle = "orange";
+        }
       }
     },
     searchSeverity: {
       handler() {
-        this.refreshStyle = "orange";
+        if (this.autoRefresh) {
+          this.fetchData();
+        } else {
+          this.refreshStyle = "orange";
+        }
       }
     },
+    searchGmInstance: {
+      handler() {
+        if (this.autoRefresh) {
+          this.fetchData();
+        } else {
+          this.refreshStyle = "orange";
+        }
+      }
+    },    
     dialog: {
       handler() {
         if (this.dialog) {
@@ -137,16 +188,16 @@ export default {
         this.searchSeverity = [ this.query.type ];
       }
 
+      if (this.query.gmInstances != null && Array.isArray(this.query.gmInstances)) {
+        this.searchGmInstance = this.query.gmInstances;
+      } else if (this.query.gmInstances) {
+        this.searchGmInstance = [ this.query.gmInstances ];
+      }
+
       if (this.query.statuses != null && Array.isArray(this.query.statuses)) {
         this.statuses = this.query.statuses;
       } else if (this.query.statuses) {
         this.statuses = [ this.query.statuses ];
-      }
-
-      if (this.query.teams != null && Array.isArray(this.query.teams)) {
-        this.teams = this.query.teams;
-      } else if (this.query.teams) {
-        this.teams = [ this.query.teams ];
       }
       
       this.poll();
@@ -461,22 +512,28 @@ export default {
         urlString = urlString + delim + "statuses=" + this.statuses;
         delim = "&";
       }
-      if (this.teams != null && this.teams.length > 0) {
-        urlString = urlString + delim + "teams=" + this.teams;
+
+      if (this.startDateTime) {
+        urlString = urlString + 
+            delim + "start=" +
+            this.startDateTime.toISOString();
         delim = "&";
       }
 
-      if (this.startDateTime && this.endDateTime) {
+      if (this.endDateTime) {
         urlString = urlString + 
-            delim + "start=" +
-            this.startDateTime.toISOString() +
             delim + "end=" +
             this.endDateTime.toISOString();
         delim = "&";
       }
 
       if (this.searchSeverity != null && this.searchSeverity.length > 0) {
-        urlString = urlString + delim + "type=" + this.searchSeverity;
+        urlString = urlString + delim + "severity=" + this.searchSeverity;
+        delim = "&";
+      }
+
+      if (this.searchGmInstance != null && this.searchGmInstance.length > 0) {
+        urlString = urlString + delim + "gminstances=" + this.searchGmInstance;
         delim = "&";
       }
       
@@ -484,32 +541,36 @@ export default {
         window.open(urlString, "_blank");
         this.loading=false;
       } else {
+        console.log(urlString)
         axios
           .get(urlString)
           .then(response => {
             this.info = response.data.payload;
             this.info.forEach(value => {
               this.logTypes.push(value.alert.labels.severity);
+              this.gmInstances.push(value.alert.labels.gm_instance);
             })
-            if (this.statuses.includes("HIDE")) {
+            
+            if (this.statuses.includes("RESOLVED")) {
               this.router.replace({
                 query: {
-                  type: this.searchSeverity,
-                  start: this.startDateTime.toISOString(),
-                  end: this.endDateTime.toISOString(),
+                  severity: this.searchSeverity,
+                  start: this.startDateTime == null ? null : this.startDateTime.toISOString(),
+                  end: this.endDateTime == null ? null : this.endDateTime.toISOString(),
                   statuses: this.statuses,
-                  teams: this.teams
+                  gminstances: this.searchGmInstance
                 }
               });
             } else {
               this.router.replace({
                 query: {
-                  type: this.searchSeverity,
+                  severity: this.searchSeverity,
                   statuses: this.statuses,
-                  teams: this.teams
+                  gminstances: this.searchGmInstance
                 }
               });
             }
+            
             this.loading = false;
           })
           .catch(error => {

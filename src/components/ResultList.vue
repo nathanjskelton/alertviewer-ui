@@ -13,7 +13,7 @@
     :search="search"
     class="elevation-1"
     :item-class="function(item) { 
-      if (item.status == 'RESOLVED') return 'grey lighten-3';
+      if (item.status == 'RESOLVED') return 'green lighten-5';
     }"
     @item-selected="itemSelected()"
     @toggle-select-all="itemSelected()"
@@ -57,7 +57,7 @@
 
       <v-navigation-drawer v-model="showDrawer" app>
         <div class="pa-2">
-          <v-btn @click="startDateTime=null;endDateTime=null;searchSeverity=[];teams=[];statuses=[]" target="_blank" text>
+          <v-btn @click="startDateTime=null;endDateTime=null;searchGmInstance=[];searchSeverity=[];gmInstances =[];statuses=[]" target="_blank" text>
             <span class="mr-2">Clear</span>
             <v-icon>mdi-notification-clear-all</v-icon>
           </v-btn>
@@ -66,6 +66,14 @@
           <v-card class="px-2 py-0">
             <v-card-text>
               <v-select multiple :items="logTypes" v-model="searchSeverity" label="Severity"></v-select>
+            </v-card-text>
+          </v-card>
+        </div>
+
+        <div class="pa-2">
+          <v-card class="px-2 py-0">
+            <v-card-text>
+              <v-select multiple :items="gmInstances" v-model="searchGmInstance" label="GM Instance"></v-select>
             </v-card-text>
           </v-card>
         </div>
@@ -92,19 +100,7 @@
             </v-card-text>
           </v-card>
         </div>
-<!--
-        <div class="pa-2">
-          <v-card class="px-2">
-            <v-card-title class="caption">Teams</v-card-title>
-            <v-card-text>
-              <v-checkbox class="my-0 py-0" v-model="teams" label="LIVE" value="LIVE"></v-checkbox>
-              <v-checkbox class="my-0 py-0" v-model="teams" label="OPS" value="OPS"></v-checkbox>
-              <v-checkbox class="my-0 py-0" v-model="teams" label="MISSION" value="MISSION"></v-checkbox>
-              <v-checkbox class="my-0 py-0" v-model="teams" label="DEV" value="DEV"></v-checkbox>
-            </v-card-text>
-          </v-card>
-        </div>
--->
+
       </v-navigation-drawer>
       <div class="pa-5">
         <v-app-bar app dense>
@@ -137,85 +133,6 @@
                 </v-btn>
               </span>
               
-            <!--
-              <span>
-                <v-btn :disabled="combineDisabled" @click.stop="combine()" target="_blank" text>
-                  <span class="mr-2">
-                    Combine
-                    <v-icon>mdi-format-letter-matches</v-icon>
-                  </span>
-                </v-btn>
-                <v-dialog v-model="dialog" persistent max-width="600px">
-                  <v-card v-if="regexAlreadyExists == false">
-                    <v-card-title>
-                      <span class="headline">Combine</span>
-                    </v-card-title>
-                    <v-card-text>
-                      <v-container>
-                        <v-textarea v-model="regexSuggestion"/>
-                      </v-container>
-                    </v-card-text>
-                    <v-card-actions>
-                      <v-spacer/>
-                      <v-btn color="blue-darken-1" text @click="dialog = false">Cancel</v-btn>
-                      <v-btn color="blue-darken-1" text @click="dialog = false;applyRegex();">Apply</v-btn>
-                    </v-card-actions>
-                  </v-card>
-                </v-dialog>
-              </span>
-              <span>
-                <v-btn :disabled="mergeDisabled" @click="merge()" target="_blank" text>
-                  <span>
-                    Merge
-                    <v-icon>mdi-merge</v-icon>
-                  </span>
-                </v-btn>
-              </span>
-              <span>
-                <v-btn @click="mergeAll()" target="_blank" text>
-                  <div class="text-lg-right">
-                    Merge All
-                    <v-icon>mdi-merge</v-icon>
-                  </div>
-                </v-btn>
-              </span>
-            -->
-
-            <!--
-              <span>
-                <v-btn
-                  :disabled="deleteDisabled"
-                  @click.stop="note.dialog = true;note.id = selected[0].id;note.message='';note.prefix='Note';note.caption='Add a note to the record';"
-                  target="_blank"
-                  text
-                >
-                  <div class="text-lg-right">
-                    Note
-                    <v-icon>mdi-note-outline</v-icon>
-                  </div>
-                </v-btn>
-              </span>
-            -->
-            <!--
-              <span>
-                <v-btn :disabled="deleteDisabled" @click.stop="resetCount()" target="_blank" text>
-                  <div class="text-lg-right">
-                    Reset
-                    <v-icon>mdi-numeric-3-box-multiple-outline</v-icon>
-                  </div>
-                </v-btn>
-              </span>
-            -->
-            <!--
-              <span>
-                <v-btn :disabled="deleteDisabled" @click.stop="deleteRecord()" target="_blank" text>
-                  <div class="text-lg-right">
-                    Delete
-                    <v-icon>mdi-delete</v-icon>
-                  </div>
-                </v-btn>
-              </span>
-            -->
             </v-row>
           </v-container>
         </v-app-bar>
@@ -289,21 +206,6 @@
       </td>
     </template>
 
-    <!--
-    <template v-slot:[`item.id`]="{ item }">
-      <div style="display: none">{{item.id}}</div>
-          <v-icon
-            class="pb-1 my-auto"
-            div
-            style="cursor:pointer"
-            color=blue
-            @click="copyDialog.text = '# ' + item.id + '\n```\n' + item.message + '\n```\n';
-                copyDialog.title = 'Entry Markdown';
-                copyDialog.dialog = true;"
-        >mdi-barcode</v-icon>    
-    </template>
-    -->
-
     <template v-slot:[`item.alert.startsAt`]="{ item }">
       <v-chip small :color="getLastOccColor(item)">{{ item.duration }}</v-chip>
     </template>
@@ -312,21 +214,15 @@
       <v-chip small :color="getSeverityColor(item)">{{ item.alert.labels.severity }}</v-chip>
     </template>
 
-  <!--
-    <template v-slot:[`item.regex`]="{ item }">
-      <v-icon
-        v-if="item.regex"
-        class="pb-1 my-auto"
-        div
-        style="cursor:pointer"
-        @click="editItem.message=item.message;editItem.id=item.id;editItem.dialog=true" color=green
-      >mdi-fingerprint</v-icon>
-      <v-icon
-        v-if="!item.regex"
-        class="pb-1 my-auto" color=red
-        div>mdi-fingerprint-off</v-icon>
-    </template>
-  -->
+    <template v-slot:[`item.alert.labels.system`]="{ item }">
+      <div v-if="item.alert.labels.system != null">
+        {{ item.alert.labels.system }}
+      </div>
+      <div class="rounded red lighten-5" v-if="(item.alert.labels.system == null) && (item.alert.labels.env != null)">
+        {{ item.alert.labels.env }}
+      </div>
+    </template>    
+
 
   
     <template v-slot:[`item.alert.labels.alertname`]="{ item }">
@@ -335,9 +231,10 @@
             copyDialog.title='Message Details';
             copyDialog.dialog = true;" 
           style="cursor: pointer; max-height: 65px; ">
-          <v-icon color=blue class="pb-0" v-if="item.status == 'NEW'">mdi-new-box</v-icon> 
-          <v-icon color=green class="pb-0" v-if="item.status == 'ACKED'">mdi-account-eye</v-icon> 
-          <v-icon color=grey class="pb-0" v-if="item.status == 'RESOLVED'">mdi-history</v-icon> 
+          <v-icon color=red class="pb-0" v-if="item.status == 'NEW'">mdi-new-box
+          </v-icon> 
+          <v-icon tooltip="Acked" color=orange class="pb-0" v-if="item.status == 'ACKED'">mdi-account-check</v-icon> 
+          <v-icon color=green class="pb-0" v-if="item.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon> 
           {{item.alert.labels.alertname}}: {{getSummaryHeader(item.alert.annotations.summary)}}</div>
       
     </template>
@@ -346,47 +243,64 @@
 
     <template v-slot:[`item.actions`]="{ item }">
       <v-container style="cell-padding: 0;">
-        <v-row dense>
-          <v-col style="max-width: 75px;">
-            <v-btn-toggle v-model="item.status" rounded>
-              <v-btn v-if="item.status == 'NEW'" 
-                value="ACK"
-                x-small
-                class="mdi-format-align-left green lighten-5"
-                @click="mark(item, 'ACKED')"
-              >ACK</v-btn>
-              <v-btn v-if="item.status == 'ACKED'" 
-                value="UNACK"
-                x-small
-                class="mdi-format-align-left blue lighten-5"
-                @click="mark(item, 'NEW')"
-              >UNACK</v-btn>
-              <v-btn v-if="item.status == 'RESOLVED'" 
-                value="DELETE"
-                x-small
-                class="mdi-format-align-center red lighten-5"
-                @click="deleteRecord(item.id);"
-              >DELETE</v-btn>
-            </v-btn-toggle>
-          </v-col>
-          <v-col style="max-width: 75px;">
-            <v-btn-toggle v-model="item.teams" rounded multiple>
-              <v-btn
-                value="NOTE"
-                x-small
-                class="mdi-format-align-center yellow lighten-5"
-                @click="note.dialog = true;note.id = item.id;note.message='';note.prefix='Note';note.caption='Add a note to the record';"
-              >NOTE</v-btn>
-
-            </v-btn-toggle>
-          </v-col>
-
-        </v-row>
-
-        
+        <v-menu offset-y>
+          <template v-slot:activator="{ on, attrs }">
+            <v-btn
+              icon
+              small
+              v-bind="attrs"
+              v-on="on"
+            >
+            <v-icon>mdi-dots-vertical</v-icon>
+            </v-btn>
+          </template>
+          <v-container style="background: white;color: white;cell-padding: 0;">
+            <v-row dense>
+              <v-col style="max-width: 75px;">
+                <v-btn-toggle v-model="item.status">
+                  <v-btn v-if="item.status == 'NEW'" 
+                    value="ACK"
+                    small
+                    style="width: 75px;"
+                    class="green lighten-5"
+                    @click="mark(item, 'ACKED')"
+                  >ACK</v-btn>
+                  <v-btn v-if="item.status == 'ACKED'" 
+                    value="UNACK"
+                    small
+                    style="width: 75px;"
+                    class="blue lighten-5"
+                    @click="mark(item, 'NEW')"
+                  >UNACK</v-btn>
+                  <v-btn v-if="item.status == 'RESOLVED'" 
+                    value="DELETE"
+                    small
+                    style="width: 75px;"
+                    class="red lighten-5"
+                    @click="deleteRecord(item.id);"
+                  >DELETE</v-btn>
+                </v-btn-toggle>
+              </v-col>
+            </v-row>
+            <v-row dense>
+              <v-col style="max-width: 75px;">
+                <v-btn-toggle v-model="item.teams">
+                  <v-btn
+                    value="NOTE"
+                    small
+                    style="width: 75px;"
+                    class="yellow lighten-5"
+                    @click="note.dialog = true;note.id = item.id;note.message='';note.prefix='Note';note.caption='Add a note to the record';"
+                  >NOTE</v-btn>
+                </v-btn-toggle>
+              </v-col>
+            </v-row>
+          </v-container>
+        </v-menu>
       </v-container>
-
     </template>
+
+
   </v-data-table>
 </template>
 
