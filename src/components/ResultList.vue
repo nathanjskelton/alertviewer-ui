@@ -1,6 +1,7 @@
 /* eslint-disable prettier/prettier */
 <template>
   <v-data-table
+    dense=true
     v-model:expanded="expanded"
     :headers="headers"
     :items="info"
@@ -10,7 +11,6 @@
     multi-sort
     :loading="loading"
     :search="search"
-    class="elevation-1"
     :item-class="function(item) { 
       if (item.status == 'RESOLVED') return 'green lighten-5';
     }"
@@ -55,7 +55,7 @@
 
       <v-navigation-drawer v-model="showDrawer" app>
         <div class="pa-2">
-          <v-btn @click="startDateTime=null;endDateTime=null;searchGmInstance=[];searchSeverity=[];gmInstances =[];statuses=[]" target="_blank" text>
+          <v-btn @click="searchGmInstance=[];searchSeverity=[];gmInstances =[];statuses=[]" target="_blank" text>
             <span class="mr-2">Clear</span>
             <v-icon>mdi-notification-clear-all</v-icon>
           </v-btn>
@@ -79,17 +79,9 @@
         <div class="pa-2">
           <v-card class="px-2">
             <v-card-title class="caption">Status</v-card-title>
-            <v-card-text>
-              <v-checkbox class="my-0 py-0" v-model="statuses" label="NEW" value="NEW"></v-checkbox>
-              <v-checkbox class="my-0 py-0" v-model="statuses" label="ACKED" value="ACKED"></v-checkbox>
-              <v-checkbox class="my-0 py-0" v-model="statuses" label="RESOLVED" value="RESOLVED"></v-checkbox>
-              <div v-if="showDates" class="px-2">
-                <v-date-picker label="Start Date" v-model="startDateTime"></v-date-picker>
-              </div>
-              <div v-if="showDates" class="px-2">
-                <v-date-picker label="End Date" v-model="endDateTime"></v-date-picker>
-              </div>
-            </v-card-text>
+              <v-checkbox hide-details dense v-model="statuses" label="NEW" value="NEW"></v-checkbox>
+              <v-checkbox hide-details dense v-model="statuses" label="ACKED" value="ACKED"></v-checkbox>
+              <v-checkbox hide-details dense v-model="statuses" label="RESOLVED" value="RESOLVED"></v-checkbox>
           </v-card>
         </div>
 
@@ -269,6 +261,7 @@
         <v-menu offset-y>
           <template v-slot:activator="{ props }">
             <v-btn
+              height="25"
               x-small
               v-bind="props"
               elevation="0"
@@ -279,42 +272,42 @@
           <v-container style="border: 1px solid grey; background: white;color: white;cell-padding: 0;">
             <v-row dense>
               <v-col style="max-width: 75px;">
-                <v-btn-toggle>
                   <v-btn v-if="item.raw.status == 'NEW'" 
                     value="ACK"
                     small
                     style="width: 75px;"
-                    class="green lighten-5"
+                    color="green" 
+                    elevation=0
                     @click="mark(item, 'ACKED')"
                   >ACK</v-btn>
                   <v-btn v-if="item.raw.status == 'ACKED'" 
                     value="UNACK"
                     small
                     style="width: 75px;"
-                    class="blue lighten-5"
+                    color="blue"
+                    elevation=0
                     @click="mark(item, 'NEW')"
                   >UNACK</v-btn>
                   <v-btn v-if="item.raw.status == 'RESOLVED'" 
                     value="DELETE"
                     small
                     style="width: 75px;"
-                    class="red lighten-5"
+                    color="red"
+                    elevation=0
                     @click="deleteRecord(item.key);"
                   >DELETE</v-btn>
-                </v-btn-toggle>
               </v-col>
             </v-row>
             <v-row dense>
               <v-col style="max-width: 75px;">
-                <v-btn-toggle>
                   <v-btn
                     value="NOTE"
                     small
                     style="width: 75px;"
-                    class="yellow lighten-5"
+                    color="yellow"
+                    elevation=0
                     @click="note.dialog = true;note.id = item.key;note.message='';note.prefix='Note';note.caption='Add a note to the record';"
                   >NOTE</v-btn>
-                </v-btn-toggle>
               </v-col>
             </v-row>
           </v-container>

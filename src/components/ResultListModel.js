@@ -18,17 +18,14 @@ export default {
     return {
       autoRefresh: false,
       statuses: ['NEW'],
-      startDateTime: null,
       sessionId: null,
       logTypes: [],
       gmInstances: [],
       searchSeverity: [],
       searchGmInstance: [],
-      endDateTime: null,
       search: "",
       regexSuggestion: "",
       regexAlreadyExists: false,
-      showDates: false,
       showDrawer: true,
       refreshStyle: "",
       dialog: false,
@@ -135,11 +132,6 @@ export default {
   watch: {
     statuses: {
       handler() {
-        if (this.statuses.includes("RESOLVED")) {
-          this.showDates = true;
-        } else {
-          this.showDates = false;
-        }
 
         if (this.statuses == null || this.statuses.length == 0) {
           this.statuses.push('NEW');
@@ -182,12 +174,7 @@ export default {
   mounted() {
     setTimeout(() => {
       console.log("*** TIMEOUT FIRED ***")
-      
-      if (this.query.startDateTime)
-        this.startDateTime = Date.parse(this.query.startDateTime);
-      if (this.query.endDateTime)
-        this.endDateTime = Date.parse(this.query.endDateTime);
-
+    
       if (this.query.type != null && Array.isArray(this.query.type)) {
         this.searchSeverity = this.query.type;
       } else if (this.query.type) {
@@ -521,20 +508,6 @@ export default {
         delim = "&";
       }
 
-      if (this.startDateTime) {
-        urlString = urlString + 
-            delim + "start=" +
-            this.startDateTime.toISOString();
-        delim = "&";
-      }
-
-      if (this.endDateTime) {
-        urlString = urlString + 
-            delim + "end=" +
-            this.endDateTime.toISOString();
-        delim = "&";
-      }
-
       if (this.searchSeverity != null && this.searchSeverity.length > 0) {
         urlString = urlString + delim + "severity=" + this.searchSeverity;
         delim = "&";
@@ -565,27 +538,16 @@ export default {
               this.gmInstances.push(value);
             })
             
-            if (this.statuses.includes("RESOLVED")) {
-              this.router.push({
-                query: {
-                  severity: this.searchSeverity,
-                  start: this.startDateTime == null ? null : this.startDateTime.toISOString(),
-                  end: this.endDateTime == null ? null : this.endDateTime.toISOString(),
-                  statuses: this.statuses,
-                  gminstances: this.searchGmInstance
-                }, replace: true
-              });
-            } else {
-              this.router.push({
-                query: {
-                  severity: this.searchSeverity,
-                  statuses: this.statuses,
-                  gminstances: this.searchGmInstance
-                }, replace: true
-              });
-            }
-            
-
+          
+            this.router.push({
+              query: {
+                severity: this.searchSeverity,
+                statuses: this.statuses,
+                gminstances: this.searchGmInstance
+              }, replace: true
+            });
+          
+          
             this.loading = false;
           })
           .catch(error => {
