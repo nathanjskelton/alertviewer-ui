@@ -1,14 +1,23 @@
-import Vue from "vue";
-import App from "./App.vue";
-import router from "./router";
-import vuetify from "./plugins/vuetify";
+/**
+ * main.js
+ *
+ * Bootstraps Vuetify and other plugins then mounts the App`
+ */
 
-Vue.config.productionTip = true;
-Vue.prototype.baseUrl = process.env.VUE_APP_SERVER_URL;
-//Vue.prototype.baseUrl = "https://localhost:8085/";
+// Components
+import App from './App.vue'
 
-new Vue({
-  router,
-  vuetify,
-  render: h => h(App)
-}).$mount("#app");
+// Composables
+import { createApp } from 'vue'
+
+// Plugins
+import { registerPlugins } from '@/plugins'
+
+const app = createApp(App)
+//app.config.globalProperties.baseUrl = process.env.VUE_APP_SERVER_URL;
+app.config.globalProperties.baseUrl = import.meta.env.VITE_APP_SERVER_URL;
+//app.config.globalProperties.baseUrl = "https://localhost:8085/";
+
+registerPlugins(app)
+
+app.mount('#app')

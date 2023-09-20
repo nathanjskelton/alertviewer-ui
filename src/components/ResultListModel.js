@@ -1,24 +1,30 @@
 import axios from "axios";
+import { useRouter, useRoute } from 'vue-router';
 
 export default {
+  setup() {
+    const router = useRouter();
+    const query = useRoute().query;
+    return {
+      router,
+      query
+    }
+  },
   name: "ResultList",
   props: {
     results: String,
-    query: null,
-    router: null
   },
   data() {
     return {
       autoRefresh: false,
-      statuses: [],
-      startDateTime: new Date(Date.now() - 86400000),
-      teams: [],
+      statuses: ['NEW'],
+      startDateTime: null,
       sessionId: null,
       logTypes: [],
       gmInstances: [],
       searchSeverity: [],
       searchGmInstance: [],
-      endDateTime: new Date(),
+      endDateTime: null,
       search: "",
       regexSuggestion: "",
       regexAlreadyExists: false,
@@ -48,20 +54,11 @@ export default {
       deleteDisabled: true,
       name: "Log Entries",
       selected: [],
+      expanded: [],
       headers: [
         {
-          value: "data-table-expand",
-          filterable: false
-        },
-        /*
-        {
-          value: "id",
-          filterable: true,
-          width: 10
-        },
-        */
-        {
-          text: "Duration",
+          key: "duration",
+          title: "Duration",
           align: "center",
           sortable: true,
           value: "alert.startsAt",
@@ -69,7 +66,8 @@ export default {
           width: 120
         },
         {
-          text: "Severity",
+          key: "severity",
+          title: "Severity",
           align: "center",
           sortable: true,
           value: "alert.labels.severity",
@@ -77,7 +75,8 @@ export default {
           width:120 
         },
         {
-          text: "GM Instance",
+          key: "gminstance",
+          title: "GM Instance",
           align: "center",
           sortable: true,
           value: "alert.labels.gm_instance",
@@ -85,7 +84,8 @@ export default {
           width:125
         },
         {
-          text: "System",
+          key: "system",
+          title: "System",
           align: "center",
           sortable: true,
           value: "alert.labels.system",
@@ -93,7 +93,8 @@ export default {
           width:125
         },
         {
-          text: "Service",
+          key: "service",
+          title: "Service",
           align: "center",
           sortable: true,
           value: "alert.annotations.service",
@@ -101,7 +102,8 @@ export default {
           width:125
         },
         {
-          text: "Instance",
+          key: "instance",
+          title: "Instance",
           align: "center",
           sortable: true,
           value: "alert.labels.instance",
@@ -109,14 +111,16 @@ export default {
           width:125
         },
         {
-          text: "Message",
+          key: "message",
+          title: "Message",
           align: "start",
           sortable: true,
           value: "alert.labels.alertname",
           filterable: true,
         },
         {
-          text: "",
+          key: "actions",
+          title: "",
           align: "start",
           sortable: false,
           value: "actions",
@@ -177,9 +181,11 @@ export default {
   },
   mounted() {
     setTimeout(() => {
-      if (this.query.startDateTime != null)
+      console.log("*** TIMEOUT FIRED ***")
+      
+      if (this.query.startDateTime)
         this.startDateTime = Date.parse(this.query.startDateTime);
-      if (this.query.endDateTime != null)
+      if (this.query.endDateTime)
         this.endDateTime = Date.parse(this.query.endDateTime);
 
       if (this.query.type != null && Array.isArray(this.query.type)) {
@@ -224,6 +230,7 @@ export default {
       if (this.autoRefresh) { this.fetchData(); }
     },
     poll() {
+      console.log("POLLING: "+this.baseUrl)
       axios
         .get(this.baseUrl + "poll?sessionId=" + this.sessionId)
         .then(response => {
@@ -261,10 +268,10 @@ export default {
       return hours + "h";
     },
     getSeverityColor(item) {
-      if (item.alert.labels.severity == "critical") {
+      if (item.raw.alert.labels.severity == "critical") {
         return "red lighten-1";
       }
-      if (item.alert.labels.severity == "warning") {
+      if (item.raw.alert.labels.severity == "warning") {
         return "yellow";
       }
       return "gray";
@@ -287,7 +294,7 @@ export default {
       return color;
     },
     styleItem(item) {
-      console.log(item.id);
+      console.log(item.key);
       return "red-lighten-5";
     },
     itemSelected() {
@@ -398,14 +405,15 @@ export default {
         });
     },
     mark(item, value) {
+      console.log("MARK: id=" + item.key + ", status=" + value)
       axios
-        .put(this.baseUrl + "mark?id=" + item.id + "&status=" + value)
+        .put(this.baseUrl + "mark?id=" + item.key + "&status=" + value)
         .then(response => {
           this.onSuccess(response);
           this.fetchData();
           //console.log("THE STATUS IS "+value);
           //if (value == 'HIDE') {
-          //  this.note.id = item.id;
+          //  this.note.id = item.key;
           //  this.note.message = "";
           //  this.note.caption = "Enter a reason for hiding this record";
           //  this.note.prefix = "Hide Record"
@@ -419,7 +427,7 @@ export default {
     setTeam(item) {
       setTimeout(() => {
         axios
-          .put(this.baseUrl + "team?id=" + item.id + "&teams=" + item.teams)
+          .put(this.baseUrl + "team?id=" + item.key + "&teams=" + item.teams)
           .then(response => {
             this.onSuccess(response);
           })
@@ -454,7 +462,7 @@ export default {
       console.log(this.editItem.message);
       axios
         .post(
-          this.baseUrl + "update?id=" + this.editItem.id,
+          this.baseUrl + "update?id=" + this.edititem.key,
           this.editItem.message,
           {
             headers: {
@@ -541,36 +549,43 @@ export default {
         window.open(urlString, "_blank");
         this.loading=false;
       } else {
-        console.log(urlString)
+        console.log("FETCHING: "+urlString)
         axios
           .get(urlString)
           .then(response => {
-            this.info = response.data.payload;
-            this.info.forEach(value => {
-              this.logTypes.push(value.alert.labels.severity);
-              this.gmInstances.push(value.alert.labels.gm_instance);
+            console.log(response.data.payload);
+            this.payload = response.data.payload;
+            this.info = response.data.payload.entries;
+            this.logTypes = []
+            this.payload.severities.forEach(value => {
+              this.logTypes.push(value);
+            })
+            this.gmInstances = []
+            this.payload.instances.forEach(value => {
+              this.gmInstances.push(value);
             })
             
             if (this.statuses.includes("RESOLVED")) {
-              this.router.replace({
+              this.router.push({
                 query: {
                   severity: this.searchSeverity,
                   start: this.startDateTime == null ? null : this.startDateTime.toISOString(),
                   end: this.endDateTime == null ? null : this.endDateTime.toISOString(),
                   statuses: this.statuses,
                   gminstances: this.searchGmInstance
-                }
+                }, replace: true
               });
             } else {
-              this.router.replace({
+              this.router.push({
                 query: {
                   severity: this.searchSeverity,
                   statuses: this.statuses,
                   gminstances: this.searchGmInstance
-                }
+                }, replace: true
               });
             }
             
+
             this.loading = false;
           })
           .catch(error => {

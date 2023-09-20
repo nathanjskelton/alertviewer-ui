@@ -1,23 +1,26 @@
-import Vue from "vue";
-import VueRouter from "vue-router";
-import Results from "../views/Results.vue";
-import DatetimePicker from "vuetify-datetime-picker";
-
-Vue.use(VueRouter);
-Vue.use(DatetimePicker);
+// Composables
+import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
   {
-    path: "/",
-    name: "Results",
-    component: Results
-  }
-];
+    path: '/',
+    component: () => import('@/layouts/default/Default.vue'),
+    children: [
+      {
+        path: '',
+        name: 'Results',
+        // route level code-splitting
+        // this generates a separate chunk (about.[hash].js) for this route
+        // which is lazy-loaded when the route is visited.
+        component: () => import(/* webpackChunkName: "results" */ '@/views/Results.vue'),
+      },
+    ],
+  },
+]
 
-const router = new VueRouter({
-  mode: "history",
-  base: process.env.BASE_URL,
-  routes
-});
+const router = createRouter({
+  history: createWebHistory(process.env.BASE_URL),
+  routes,
+})
 
-export default router;
+export default router
