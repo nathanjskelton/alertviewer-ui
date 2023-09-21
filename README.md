@@ -108,3 +108,33 @@ func (n *Notification) String() string {
 - String user
 - String message
 
+
+# Silence
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": "eced0fd0-198a-4710-a492-a903f85dfcf0",
+      "matchers": [
+        {
+          "name": "alername1",
+          "value": "mytest.*",
+          "isRegex": true,
+          "isEqual": true
+        }
+      ],
+      "startsAt": "2023-09-21T20:33:56.672846144Z",
+      "endsAt": "2023-09-23T00:00:00Z",
+      "updatedAt": "2023-09-21T20:33:56.672846144Z",
+      "createdBy": "api",
+      "comment": "Silence",
+      "status": {
+        "state": "active"
+      }
+    }
+  ]
+}
+```
+

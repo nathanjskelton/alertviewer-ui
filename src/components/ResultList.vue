@@ -1,5 +1,35 @@
 /* eslint-disable prettier/prettier */
 <template>
+  <v-app-bar
+    color="deep-purple accent-4"
+    dense
+    dark
+  >
+    <v-app-bar-nav-icon @click="toggleDrawer()"></v-app-bar-nav-icon>
+
+    <v-toolbar-title>GM Alert Viewer</v-toolbar-title>
+
+    <v-spacer></v-spacer>
+
+    <v-btn class="mb-2" icon>
+      <v-switch v-model="autoRefresh"></v-switch>
+    </v-btn>
+
+    <v-btn tile @click="fetchData()" target="_blank" text :color="refreshStyle">
+      Query
+      <v-icon>mdi-database-refresh</v-icon>
+    </v-btn>
+
+    <v-btn tile @click.stop="fetchData(true)" target="_blank" text>
+      <div >
+        Export
+        <v-icon>mdi-application-export</v-icon>
+      </div>
+    </v-btn>
+
+    
+  </v-app-bar>
+    
   <v-data-table
     dense=true
     v-model:expanded="expanded"
@@ -16,18 +46,6 @@
     }"
   >
     <template v-slot:top>
-      <v-dialog max-width="600px" v-model="editItem.dialog">
-        <v-card>
-          <v-card-text>
-            <v-textarea v-model="editItem.message" label="Edit Regular Expression"></v-textarea>
-          </v-card-text>
-          <v-card-actions>
-            <v-btn color="blue-darken-1" text @click="editItem.dialog=false;save();">Apply</v-btn>
-            <v-btn color="blue-darken-1" text @click="editItem.dialog=false;"  >Cancel</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-
       
       <v-dialog max-width="500px" v-model="copyDialog.dialog">
         <v-card>
@@ -53,128 +71,65 @@
         </v-card>
       </v-dialog>
 
-      <v-navigation-drawer v-model="showDrawer" app>
-        <div class="pa-2">
-          <v-btn @click="searchGmInstance=[];searchSeverity=[];gmInstances =[];statuses=[]" target="_blank" text>
+      <v-dialog max-width="600px" v-model="silence.dialog" persistent>
+        <v-card>
+          <v-card-text>
+            <v-container>
+              <v-row>
+                <v-col>
+                  <div>Message</div>
+                </v-col>
+                <v-col>
+                  <v-text-field v-model="silence.message"></v-text-field>
+                </v-col>
+              </v-row>
+            </v-container>
+          </v-card-text>
+          <v-card-actions>
+            <v-btn color="blue-darken-1" text @click="silence.dialog=false;saveSilence();">Save</v-btn>
+            <v-btn color="blue-darken-1" text @click="silence.dialog=false;">Cancel</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+
+      <v-navigation-drawer v-model="showDrawer" app color="purple-lighten-5">
+        <div class="pa-2 mt-4">
+          <v-btn width=250 @click="searchGmInstance=[];searchSeverity=[];gmInstances =[];statuses=[]" target="_blank" text style="background-color:rgba(0, 0, 0, 0.04);">
             <span class="mr-2">Clear</span>
             <v-icon>mdi-notification-clear-all</v-icon>
           </v-btn>
         </div>
         <div class="pa-2">
-          <v-card class="px-2 py-0">
-            <v-card-text>
-              <v-select multiple :items="logTypes" v-model="searchSeverity" label="Severity"></v-select>
-            </v-card-text>
-          </v-card>
+            <v-select multiple :items="logTypes" v-model="searchSeverity" label="Severity"></v-select>
         </div>
 
-        <div class="pa-2">
-          <v-card class="px-2 py-0">
-            <v-card-text>
-              <v-select multiple :items="gmInstances" v-model="searchGmInstance" label="GM Instance"></v-select>
-            </v-card-text>
-          </v-card>
+        <div class="pa-2">   
+            <v-select multiple :items="gmInstances" v-model="searchGmInstance" label="GM Instance"></v-select>
         </div>
 
-        <div class="pa-2">
-          <v-card class="px-2">
+        <div class="pa-2" >
+          <v-card class="px-2" style="background-color:rgba(0, 0, 0, 0.04);" >
             <v-card-title class="caption">Status</v-card-title>
               <v-checkbox hide-details dense v-model="statuses" label="NEW" value="NEW"></v-checkbox>
               <v-checkbox hide-details dense v-model="statuses" label="ACKED" value="ACKED"></v-checkbox>
               <v-checkbox hide-details dense v-model="statuses" label="RESOLVED" value="RESOLVED"></v-checkbox>
           </v-card>
         </div>
-
       </v-navigation-drawer>
 
-      <!--
-      <div class="pa-5">
-        <v-app-bar app dense>
-
-
-          <v-container >
-            <v-row justify="end" align="center">
-              
-              <v-col >
-                <v-switch class="mt-1"  v-model="autoRefresh"></v-switch>
-              </v-col>
-              <v-col >
-                <v-btn tile @click="fetchData()" target="_blank" text :color="refreshStyle">
-                  Query
-                  <v-icon>mdi-database-refresh</v-icon>
-                </v-btn>
-              </v-col>
-              <v-col >
-                
-              </v-col>
-              
-            </v-row>
-          </v-container>
-        </v-app-bar>
-      
-
-
-        <v-container fluid class="pa-0">
-          <v-row dense>
-            <v-col>
-
-            </v-col>
-          </v-row>
-        </v-container>
-      </div>
-      -->
-      <v-card
-          color="grey lighten-4"
-          flat
-          height="60px"
-          tile
-        >
-          <v-toolbar dense>
-            <v-btn color="blue" v-if="showDrawer==false" icon @click="toggleDrawer();">
-            <v-icon class="pa-0 ma-0">mdi-arrow-expand-right</v-icon>
-          </v-btn>
-          <v-btn color="blue" v-if="showDrawer==true" icon @click="toggleDrawer();">
-            <v-icon class="pa-0 ma-0">mdi-arrow-expand-left</v-icon>
-          </v-btn>
-            
-
-            <v-toolbar-title>GM Event Viewer</v-toolbar-title>
-
-            <v-spacer></v-spacer>
-
-
-            <v-btn class="mb-2" icon>
-              <v-switch v-model="autoRefresh"></v-switch>
-            </v-btn>
-
-            <v-btn tile @click="fetchData()" target="_blank" text :color="refreshStyle">
-              Query
-              <v-icon>mdi-database-refresh</v-icon>
-            </v-btn>
-
-            <v-btn tile @click.stop="fetchData(true)" target="_blank" text>
-              <div >
-                Export
-                <v-icon>mdi-application-export</v-icon>
-              </div>
-            </v-btn>
-
-            <v-btn icon>
-              <v-icon>mdi-magnify</v-icon>
-              <!--
-              <v-text-field
-                dense
-                v-model="search"
-                append-icon="mdi-table-search"
-                label="Search"
-                single-line
-                hide-details
-              ></v-text-field>    
-              -->          
-            </v-btn>
-
-          </v-toolbar>
-        </v-card>
+    
+      <v-toolbar dense color="purple-lighten-5" height="50">      
+        <v-text-field
+          clearable
+          clear-icon="mdi-broom"
+          dense
+          v-model="search"
+          label="Search"
+          single-line
+          hide-details
+        ></v-text-field>    
+      </v-toolbar>
     </template>
 
 
@@ -269,10 +224,9 @@
               <v-icon x-small>mdi-dots-vertical</v-icon>
             </v-btn>
           </template>
-          <v-container style="border: 1px solid grey; background: white;color: white;cell-padding: 0;">
-            <v-row dense>
-              <v-col style="max-width: 75px;">
-                  <v-btn v-if="item.raw.status == 'NEW'" 
+          <v-card><v-list>
+            <v-list-item v-if="item.raw.status == 'NEW'" >
+                  <v-btn 
                     value="ACK"
                     small
                     style="width: 75px;"
@@ -280,7 +234,9 @@
                     elevation=0
                     @click="mark(item, 'ACKED')"
                   >ACK</v-btn>
-                  <v-btn v-if="item.raw.status == 'ACKED'" 
+                </v-list-item>
+                <v-list-item v-if="item.raw.status == 'ACKED'">
+                  <v-btn  
                     value="UNACK"
                     small
                     style="width: 75px;"
@@ -288,7 +244,9 @@
                     elevation=0
                     @click="mark(item, 'NEW')"
                   >UNACK</v-btn>
-                  <v-btn v-if="item.raw.status == 'RESOLVED'" 
+                </v-list-item>
+                <v-list-item v-if="item.raw.status == 'RESOLVED'"> 
+                  <v-btn  
                     value="DELETE"
                     small
                     style="width: 75px;"
@@ -296,10 +254,18 @@
                     elevation=0
                     @click="deleteRecord(item.key);"
                   >DELETE</v-btn>
-              </v-col>
-            </v-row>
-            <v-row dense>
-              <v-col style="max-width: 75px;">
+                </v-list-item>
+                <v-list-item v-if="item.raw.status != 'RESOLVED'" >
+                  <v-btn 
+                    value="SILENCE"
+                    small
+                    style="width: 75px;"
+                    color="red"
+                    elevation=0
+                    @click="silence.dialog = true;silence.id = item.key;silence.message='This is it';"
+                  >SILENCE</v-btn>
+                </v-list-item>
+                <v-list-item>
                   <v-btn
                     value="NOTE"
                     small
@@ -308,9 +274,10 @@
                     elevation=0
                     @click="note.dialog = true;note.id = item.key;note.message='';note.prefix='Note';note.caption='Add a note to the record';"
                   >NOTE</v-btn>
-              </v-col>
-            </v-row>
-          </v-container>
+                </v-list-item>
+                
+                </v-list>
+                </v-card>
         </v-menu>
       </v-container>
     </template>

@@ -1,6 +1,6 @@
 <template>
-  <div class="resultList">
-    <ResultList results="This is my results" />
+  <div >
+    <ResultList  />
   </div>
 </template>
 
@@ -9,9 +9,9 @@
 import ResultList from "@/components/ResultList.vue";
 
 export default {
-  name: "TheResults",
+  name: "GM Alert Viewer",
   components: {
-    ResultList
+    ResultList,
   }
 };
 </script>

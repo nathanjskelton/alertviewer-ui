@@ -2,6 +2,7 @@ import axios from "axios";
 import { useRouter, useRoute } from 'vue-router';
 
 export default {
+  
   setup() {
     const router = useRouter();
     const query = useRoute().query;
@@ -41,6 +42,11 @@ export default {
         caption: "Add a note to the record",
         prefix: "Note"
       },
+      silence: {
+        dialog: false,
+        id: null,
+        message: null,
+      },      
       editItem: {
         id: null,
         message: null,
@@ -204,7 +210,9 @@ export default {
     setInterval(() => {
       this.autoFetchData();
     }, 15000);
+
   },
+ 
   methods: {
     customSort(a, b) {
         console.log("a="+a);
