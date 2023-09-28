@@ -5,27 +5,27 @@
       dense
       dark
     >
-      <v-app-bar-nav-icon></v-app-bar-nav-icon>
+      <v-menu>
+        <template v-slot:activator="{ props }">
+          <v-app-bar-nav-icon v-bind="props"></v-app-bar-nav-icon>
+
+        </template>
+        <v-list>
+          
+          <v-list-item>
+            <v-list-item-title> <router-link class="a menu-link" :to="{ name: 'Results' }"> ALERTS</router-link></v-list-item-title>
+          </v-list-item>
+
+          
+          <v-list-item>
+            <v-list-item-title><router-link class="a menu-link" :to="{ name: 'Silences' }">SILENCES</router-link></v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
 
       <v-toolbar-title>GM Alert Viewer</v-toolbar-title>
-
-      <v-spacer></v-spacer>
-
-      <v-btn class="mb-2" icon>
-        <v-switch v-model="autoRefresh"></v-switch>
-      </v-btn>
-
-      <v-btn tile @click="fetchData()" target="_blank" text :color="refreshStyle">
-        Query
-        <v-icon>mdi-database-refresh</v-icon>
-      </v-btn>
-
-      <v-btn tile @click.stop="fetchData(true)" target="_blank" text>
-        <div >
-          Export
-          <v-icon>mdi-application-export</v-icon>
-        </div>
-      </v-btn>
+      
+      
 
      
     </v-app-bar>
@@ -35,3 +35,14 @@
 <script setup>
   //
 </script>
+
+<style>
+.menu-link {
+  color:black;
+  text-decoration: none;
+}
+.router-link-active {
+  border-left: 3px solid red;
+  padding-left: 4px;
+}
+</style>

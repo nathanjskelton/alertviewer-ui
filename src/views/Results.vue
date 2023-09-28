@@ -9,7 +9,7 @@
 import ResultList from "@/components/ResultList.vue";
 
 export default {
-  name: "GM Alert Viewer",
+  name: "GM Alerts",
   components: {
     ResultList,
   }

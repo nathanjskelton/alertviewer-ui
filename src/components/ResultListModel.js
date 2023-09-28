@@ -15,8 +15,38 @@ export default {
   props: {
     results: String,
   },
+  computed: {
+    
+  },
   data() {
     return {
+
+      currentSilence: {
+        matchers: [
+            {
+                isRegex: true,
+                isEqual: true,
+                name: null,
+                value: null
+            }
+        ],
+        createdBy: "ui",
+        startsAt: null,
+        comment: null,
+        id: null,
+        endsAt: null,
+        updatedAt: null,
+        hours: 1,
+        hoursLeft: 1,
+        status: {
+            state: "active"
+        }
+      },
+      silence: {
+        dialog: false,
+      },
+      silences: [],
+
       autoRefresh: false,
       statuses: ['NEW'],
       sessionId: null,
@@ -42,11 +72,7 @@ export default {
         caption: "Add a note to the record",
         prefix: "Note"
       },
-      silence: {
-        dialog: false,
-        id: null,
-        message: null,
-      },      
+ 
       editItem: {
         id: null,
         message: null,
@@ -59,6 +85,15 @@ export default {
       selected: [],
       expanded: [],
       headers: [
+        {
+          key: "icon",
+          title: "",
+          align: "center",
+          sortable: true,
+          value: "",
+          filterable: false,
+          width: 50
+        },
         {
           key: "duration",
           title: "Duration",
@@ -179,7 +214,7 @@ export default {
   },
   mounted() {
     setTimeout(() => {
-      console.log("*** TIMEOUT FIRED ***")
+      console.log("*** ALERTS TIMEOUT FIRED ***")
     
       if (this.query.type != null && Array.isArray(this.query.type)) {
         this.searchSeverity = this.query.type;
@@ -214,6 +249,13 @@ export default {
   },
  
   methods: {
+    //TEST
+    genRandomIndex (length) {
+      return Math.ceil(Math.random() * (length - 1))
+    },
+
+    //END TEST
+
     customSort(a, b) {
         console.log("a="+a);
         console.log("b="+b);
@@ -489,6 +531,54 @@ export default {
           this.handleError(error);
         });
     },
+    newMatcher() {
+      this.currentSilence.matchers.push(
+        {
+          name: null,
+          value: null,
+          isEqual: true
+        });
+    },
+    deleteMatcher(name, value) {
+      this.currentSilence.matchers = this.currentSilence.matchers.filter( el => (el.name+el.value+"" !== name+value+""));
+    },
+    toggleMatcher(name, value) {
+      var result = this.currentSilence.matchers.find(obj => {
+        return obj.name === name && obj.value === value;
+      });
+      if (result.isEqual == true) {
+        result.isEqual = false;
+      } else {
+        result.isEqual = true;
+      }
+    },
+    newSilence(item) {
+      this.currentSilence.comment = "Silence "+item.raw.alert.labels.alertname;
+      this.currentSilence.id = null;
+      this.currentSilence.createdBy = "ui";
+      this.currentSilence.status.state = "active";
+      this.currentSilence.matchers = [];
+      for (const property in item.raw.alert.labels) {      
+        this.currentSilence.matchers.push(
+          {
+            name: `${property}`,
+            value: `${item.raw.alert.labels[property]}`,
+            isEqual: true
+          });
+      }
+      this.currentSilence.hours = 24;
+    },
+    saveSilence() {
+      axios
+        .post(this.baseUrl + "silence", this.currentSilence)
+        //eslint-disable-next-line no-unused-vars
+        .then(response => {
+          this.onSuccess(response);
+        })
+        .catch(error => {
+          this.handleError(error);
+        });
+    },
     copyDialogText() {
       let textToCopy = this.$refs.copydialog.$el.querySelector('textarea');
       textToCopy.select()
@@ -536,6 +626,7 @@ export default {
           .then(response => {
             console.log(response.data.payload);
             this.payload = response.data.payload;
+            this.silences = response.data.payload.silences;
             this.info = response.data.payload.entries;
             this.logTypes = []
             this.payload.severities.forEach(value => {
