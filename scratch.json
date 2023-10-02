@@ -1,0 +1,142 @@
+[
+  {
+    "data": [
+      {
+        "matchers": [
+          {
+            "isRegex": true,
+            "isEqual": true,
+            "name": "alername1",
+            "value": "mytest.*"
+          }
+        ],
+        "createdBy": "api",
+        "startsAt": "2023-09-21T20:33:56.672846144Z",
+        "comment": "Silence",
+        "id": "eced0fd0-198a-4710-a492-a903f85dfcf0",
+        "endsAt": "2023-09-23T00:00:00Z",
+        "updatedAt": "2023-09-21T20:33:56.672846144Z",
+        "status": {
+          "state": "expired"
+        }
+      },
+      {
+        "matchers": [
+          {
+            "name": "alername1",
+            "value": "mytest.*",
+            "isRegex": true
+          }
+        ],
+        "startsAt": "2023-09-15T00:00:00.000Z",
+        "endsAt": "2023-09-23T00:00:00.000Z",
+        "createdBy": "api",
+        "comment": "Silence",
+        "status": {
+          "state": "active"
+        }
+      }
+    ],
+    "status": "success"
+  },
+  {
+    "matchers": [
+      {
+        "isRegex": true,
+        "isEqual": true,
+        "name": "aaa",
+        "value": "111"
+      }
+    ],
+    "createdBy": "ui",
+    "startsAt": "2023-09-27T02:29:42.112Z",
+    "comment": "my comment",
+    "id": null,
+    "endsAt": "Wed Sep 27 2023 02:29:42 GMT+0000 (Coordinated Universal Time)60000",
+    "updatedAt": "2023-09-27T02:29:42.112Z",
+    "status": {
+      "state": "active"
+    },
+    "hours": "666"
+  },
+  {
+    "matchers": [
+      {
+        "isRegex": true,
+        "isEqual": true,
+        "name": "aaa",
+        "value": "111"
+      }
+    ],
+    "createdBy": "ui",
+    "startsAt": null,
+    "comment": "hello this is my silence",
+    "id": null,
+    "endsAt": null,
+    "updatedAt": null,
+    "hours": "3",
+    "status": {
+      "state": "active"
+    }
+  },
+  {
+    "matchers": [
+      {
+        "name": "aaa",
+        "value": "111",
+        "isRegex": true,
+        "isEqual": true
+      }
+    ],
+    "comment": "hello this is my silence",
+    "id": null,
+    "status": {
+      "state": "active"
+    },
+    "createdBy": "ui",
+    "startsAt": 1695827538196,
+    "endsAt": 1695838338196,
+    "updatedAt": 1695827538196,
+    "hours": 3
+  },
+  {'receiver': 'wraith', 
+    'status': 'firing', 
+    'alerts': [
+      {'status': 'firing', 
+      'labels':      {'alertname': 'Value1', 
+                      'gm_instance': 'gmdev', 
+                      'instance': 'nginx:80', 
+                      'jira': 'true', 
+                      'job': 'custom', 
+                      'severity': 'warning', 
+                      'system': 'platform'
+                     }, 
+      'annotations': {'service': 'custom alerts instance 1', 
+                      'summary': 'value1 is > 0'
+                     }, 
+      'startsAt': '2023-09-28T18:45:19.057Z', 
+      'endsAt': '0001-01-01T00:00:00Z', 
+      'generatorURL': 'http://e9c0848a185b:9090/graph?g0.expr=value1%7Bjob%3D%22custom%22%7D+%3E+0&g0.tab=1', 
+      'fingerprint': '6a7aeaf0d4fbbb4d'
+      }
+    ], 
+    'groupLabels': {}, 
+    'commonLabels':  {'alertname': 'Value1', 
+                      'gm_instance': 'gmdev', 
+                      'instance': 'nginx:80', 
+                      'jira': 'true', 
+                      'job': 'custom', 
+                      'severity': 'warning', 
+                      'system': 'platform'
+                     }, 
+    'commonAnnotations': {
+                      'service': 'custom alerts instance 1', 
+                      'summary': 'value1 is > 0'
+                     }, 
+    'externalURL': 'http://fbf45a1a7957:9093', 
+    'version': '4', 
+    'groupKey': '{}/{jira="true"}:{}', 
+    'truncatedAlerts': 0
+  }
+
+]

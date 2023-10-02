@@ -1,17 +1,17 @@
 <template>
   <div >
-    <ResultList  />
+    <SilencesList  />
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-import ResultList from "@/components/ResultList.vue";
+import SilencesList from "@/components/SilencesList.vue";
 
 export default {
-  name: "GM Alerts",
+  name: "GM Silences",
   components: {
-    ResultList,
+    SilencesList,
   }
 };
 </script>

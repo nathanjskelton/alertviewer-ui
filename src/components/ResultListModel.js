@@ -1,28 +1,62 @@
 import axios from "axios";
+import { useRouter, useRoute } from 'vue-router';
 
 export default {
+  
+  setup() {
+    const router = useRouter();
+    const query = useRoute().query;
+    return {
+      router,
+      query
+    }
+  },
   name: "ResultList",
   props: {
     results: String,
-    query: null,
-    router: null
+  },
+  computed: {
+    
   },
   data() {
     return {
+
+      currentSilence: {
+        matchers: [
+            {
+                isRegex: true,
+                isEqual: true,
+                name: null,
+                value: null
+            }
+        ],
+        createdBy: "ui",
+        startsAt: null,
+        comment: null,
+        id: null,
+        endsAt: null,
+        updatedAt: null,
+        hours: 1,
+        hoursLeft: 1,
+        status: {
+            state: "active"
+        }
+      },
+      silence: {
+        dialog: false,
+      },
+      silences: [],
+
       autoRefresh: false,
-      statuses: [],
-      startDateTime: new Date(Date.now() - 86400000),
-      teams: [],
+      statuses: ['NEW'],
       sessionId: null,
       logTypes: [],
       gmInstances: [],
       searchSeverity: [],
       searchGmInstance: [],
-      endDateTime: new Date(),
       search: "",
       regexSuggestion: "",
       regexAlreadyExists: false,
-      showDates: false,
       showDrawer: true,
       refreshStyle: "",
       dialog: false,
@@ -38,6 +72,7 @@ export default {
         caption: "Add a note to the record",
         prefix: "Note"
       },
+ 
       editItem: {
         id: null,
         message: null,
@@ -48,20 +83,20 @@ export default {
       deleteDisabled: true,
       name: "Log Entries",
       selected: [],
+      expanded: [],
       headers: [
         {
-          value: "data-table-expand",
-          filterable: false
+          key: "icon",
+          title: "",
+          align: "center",
+          sortable: true,
+          value: "",
+          filterable: false,
+          width: 50
         },
-        /*
         {
-          value: "id",
-          filterable: true,
-          width: 10
-        },
-        */
-        {
-          text: "Duration",
+          key: "duration",
+          title: "Duration",
           align: "center",
           sortable: true,
           value: "alert.startsAt",
@@ -69,7 +104,8 @@ export default {
           width: 120
         },
         {
-          text: "Severity",
+          key: "severity",
+          title: "Severity",
           align: "center",
           sortable: true,
           value: "alert.labels.severity",
@@ -77,7 +113,8 @@ export default {
           width:120 
         },
         {
-          text: "GM Instance",
+          key: "gminstance",
+          title: "GM Instance",
           align: "center",
           sortable: true,
           value: "alert.labels.gm_instance",
@@ -85,7 +122,8 @@ export default {
           width:125
         },
         {
-          text: "System",
+          key: "system",
+          title: "System",
           align: "center",
           sortable: true,
           value: "alert.labels.system",
@@ -93,7 +131,8 @@ export default {
           width:125
         },
         {
-          text: "Service",
+          key: "service",
+          title: "Service",
           align: "center",
           sortable: true,
           value: "alert.annotations.service",
@@ -101,7 +140,8 @@ export default {
           width:125
         },
         {
-          text: "Instance",
+          key: "instance",
+          title: "Instance",
           align: "center",
           sortable: true,
           value: "alert.labels.instance",
@@ -109,14 +149,16 @@ export default {
           width:125
         },
         {
-          text: "Message",
+          key: "message",
+          title: "Message",
           align: "start",
           sortable: true,
           value: "alert.labels.alertname",
           filterable: true,
         },
         {
-          text: "",
+          key: "actions",
+          title: "",
           align: "start",
           sortable: false,
           value: "actions",
@@ -131,11 +173,6 @@ export default {
   watch: {
     statuses: {
       handler() {
-        if (this.statuses.includes("RESOLVED")) {
-          this.showDates = true;
-        } else {
-          this.showDates = false;
-        }
 
         if (this.statuses == null || this.statuses.length == 0) {
           this.statuses.push('NEW');
@@ -177,11 +214,8 @@ export default {
   },
   mounted() {
     setTimeout(() => {
-      if (this.query.startDateTime != null)
-        this.startDateTime = Date.parse(this.query.startDateTime);
-      if (this.query.endDateTime != null)
-        this.endDateTime = Date.parse(this.query.endDateTime);
-
+      console.log("*** ALERTS TIMEOUT FIRED ***")
+    
       if (this.query.type != null && Array.isArray(this.query.type)) {
         this.searchSeverity = this.query.type;
       } else if (this.query.type) {
@@ -211,8 +245,17 @@ export default {
     setInterval(() => {
       this.autoFetchData();
     }, 15000);
+
   },
+ 
   methods: {
+    //TEST
+    genRandomIndex (length) {
+      return Math.ceil(Math.random() * (length - 1))
+    },
+
+    //END TEST
+
     customSort(a, b) {
         console.log("a="+a);
         console.log("b="+b);
@@ -224,6 +267,7 @@ export default {
       if (this.autoRefresh) { this.fetchData(); }
     },
     poll() {
+      console.log("POLLING: "+this.baseUrl)
       axios
         .get(this.baseUrl + "poll?sessionId=" + this.sessionId)
         .then(response => {
@@ -261,10 +305,10 @@ export default {
       return hours + "h";
     },
     getSeverityColor(item) {
-      if (item.alert.labels.severity == "critical") {
+      if (item.raw.alert.labels.severity == "critical") {
         return "red lighten-1";
       }
-      if (item.alert.labels.severity == "warning") {
+      if (item.raw.alert.labels.severity == "warning") {
         return "yellow";
       }
       return "gray";
@@ -287,7 +331,7 @@ export default {
       return color;
     },
     styleItem(item) {
-      console.log(item.id);
+      console.log(item.key);
       return "red-lighten-5";
     },
     itemSelected() {
@@ -398,14 +442,15 @@ export default {
         });
     },
     mark(item, value) {
+      console.log("MARK: id=" + item.key + ", status=" + value)
       axios
-        .put(this.baseUrl + "mark?id=" + item.id + "&status=" + value)
+        .put(this.baseUrl + "mark?id=" + item.key + "&status=" + value)
         .then(response => {
           this.onSuccess(response);
           this.fetchData();
           //console.log("THE STATUS IS "+value);
           //if (value == 'HIDE') {
-          //  this.note.id = item.id;
+          //  this.note.id = item.key;
           //  this.note.message = "";
           //  this.note.caption = "Enter a reason for hiding this record";
           //  this.note.prefix = "Hide Record"
@@ -419,7 +464,7 @@ export default {
     setTeam(item) {
       setTimeout(() => {
         axios
-          .put(this.baseUrl + "team?id=" + item.id + "&teams=" + item.teams)
+          .put(this.baseUrl + "team?id=" + item.key + "&teams=" + item.teams)
           .then(response => {
             this.onSuccess(response);
           })
@@ -454,7 +499,7 @@ export default {
       console.log(this.editItem.message);
       axios
         .post(
-          this.baseUrl + "update?id=" + this.editItem.id,
+          this.baseUrl + "update?id=" + this.edititem.key,
           this.editItem.message,
           {
             headers: {
@@ -478,6 +523,54 @@ export default {
             "Content-Type": "text/plain"
           }
         })
+        //eslint-disable-next-line no-unused-vars
+        .then(response => {
+          this.onSuccess(response);
+        })
+        .catch(error => {
+          this.handleError(error);
+        });
+    },
+    newMatcher() {
+      this.currentSilence.matchers.push(
+        {
+          name: null,
+          value: null,
+          isEqual: true
+        });
+    },
+    deleteMatcher(name, value) {
+      this.currentSilence.matchers = this.currentSilence.matchers.filter( el => (el.name+el.value+"" !== name+value+""));
+    },
+    toggleMatcher(name, value) {
+      var result = this.currentSilence.matchers.find(obj => {
+        return obj.name === name && obj.value === value;
+      });
+      if (result.isEqual == true) {
+        result.isEqual = false;
+      } else {
+        result.isEqual = true;
+      }
+    },
+    newSilence(item) {
+      this.currentSilence.comment = "Silence "+item.raw.alert.labels.alertname;
+      this.currentSilence.id = null;
+      this.currentSilence.createdBy = "ui";
+      this.currentSilence.status.state = "active";
+      this.currentSilence.matchers = [];
+      for (const property in item.raw.alert.labels) {      
+        this.currentSilence.matchers.push(
+          {
+            name: `${property}`,
+            value: `${item.raw.alert.labels[property]}`,
+            isEqual: true
+          });
+      }
+      this.currentSilence.hours = 24;
+    },
+    saveSilence() {
+      axios
+        .post(this.baseUrl + "silence", this.currentSilence)
         //eslint-disable-next-line no-unused-vars
         .then(response => {
           this.onSuccess(response);
@@ -513,20 +606,6 @@ export default {
         delim = "&";
       }
 
-      if (this.startDateTime) {
-        urlString = urlString + 
-            delim + "start=" +
-            this.startDateTime.toISOString();
-        delim = "&";
-      }
-
-      if (this.endDateTime) {
-        urlString = urlString + 
-            delim + "end=" +
-            this.endDateTime.toISOString();
-        delim = "&";
-      }
-
       if (this.searchSeverity != null && this.searchSeverity.length > 0) {
         urlString = urlString + delim + "severity=" + this.searchSeverity;
         delim = "&";
@@ -541,36 +620,33 @@ export default {
         window.open(urlString, "_blank");
         this.loading=false;
       } else {
-        console.log(urlString)
+        console.log("FETCHING: "+urlString)
         axios
           .get(urlString)
           .then(response => {
-            this.info = response.data.payload;
-            this.info.forEach(value => {
-              this.logTypes.push(value.alert.labels.severity);
-              this.gmInstances.push(value.alert.labels.gm_instance);
+            console.log(response.data.payload);
+            this.payload = response.data.payload;
+            this.silences = response.data.payload.silences;
+            this.info = response.data.payload.entries;
+            this.logTypes = []
+            this.payload.severities.forEach(value => {
+              this.logTypes.push(value);
+            })
+            this.gmInstances = []
+            this.payload.instances.forEach(value => {
+              this.gmInstances.push(value);
             })
             
-            if (this.statuses.includes("RESOLVED")) {
-              this.router.replace({
-                query: {
-                  severity: this.searchSeverity,
-                  start: this.startDateTime == null ? null : this.startDateTime.toISOString(),
-                  end: this.endDateTime == null ? null : this.endDateTime.toISOString(),
-                  statuses: this.statuses,
-                  gminstances: this.searchGmInstance
-                }
-              });
-            } else {
-              this.router.replace({
-                query: {
-                  severity: this.searchSeverity,
-                  statuses: this.statuses,
-                  gminstances: this.searchGmInstance
-                }
-              });
-            }
-            
+          
+            this.router.push({
+              query: {
+                severity: this.searchSeverity,
+                statuses: this.statuses,
+                gminstances: this.searchGmInstance
+              }, replace: true
+            });
+          
+          
             this.loading = false;
           })
           .catch(error => {
