@@ -1,22 +1,33 @@
-FROM node:lts-alpine
+# Name the node stage "builder"
+FROM node:12 AS builder
 
-# install simple http server for serving static content
-RUN npm install -g http-server
-
-# make the 'app' folder the current working directory
+# # Set working directory
 WORKDIR /app
 
-# copy both 'package.json' and 'package-lock.json' (if available)
-COPY package*.json ./
-
-# install project dependencies
-RUN npm install
-
-# copy project files and folders to the current working directory (i.e. 'app' folder)
+# Copy all files from current directory to working dir in image
 COPY . .
 
-# build app for production with minification
-RUN npm run build
+# install node modules and build assets
+RUN npm install && npm run build
 
-EXPOSE 8080
-CMD [ "http-server", "dist" ]
+# nginx state for serving content
+FROM nginx:alpine
+
+# Set working directory to nginx asset directory
+WORKDIR /usr/share/nginx/html
+
+# Remove default nginx static assets
+RUN rm -rf ./*
+
+# Copy static assets from builder stage
+COPY --from=builder /app/dist .
+
+# Set working directory to nginx asset directory
+WORKDIR /etc/nginx/conf.d
+
+# Copy static assets from builder stage
+COPY default.conf .
+
+# Containers run nginx with global directives and daemon off
+ENTRYPOINT ["nginx", "-g", "daemon off;"]
+
