@@ -21,6 +21,16 @@ export default {
   data() {
     return {
 
+      currentJira: {
+        id: null,
+        summary: null,
+        description: null,
+      },
+
+      jira: {
+        dialog: false,
+      },
+
       currentSilence: {
         matchers: [
             {
@@ -571,6 +581,23 @@ export default {
     saveSilence() {
       axios
         .post(this.baseUrl + "silence", this.currentSilence)
+        //eslint-disable-next-line no-unused-vars
+        .then(response => {
+          this.onSuccess(response);
+        })
+        .catch(error => {
+          this.handleError(error);
+        });
+    },
+    newJira(item) {
+      this.currentJira.id = "cortana:" + item.raw.alert.fingerprint;
+      this.currentJira.description = item.raw.alert.annotations.summary;
+      this.currentJira.summary = "Cortana: " + item.raw.alert.labels.alertname;
+      this.jira.dialog = true;
+    },
+    saveJira() {
+      axios
+        .post(this.baseUrl + "jira", this.currentJira)
         //eslint-disable-next-line no-unused-vars
         .then(response => {
           this.onSuccess(response);

@@ -76,6 +76,26 @@
         </v-card>
       </v-dialog>
 
+
+      <v-dialog max-width="600px" v-model="jira.dialog" persistent>
+        <v-card>
+          <v-card-text>
+            <v-row>
+              <v-col cols="3">Summary</v-col>
+              <v-col><v-text-field v-model="currentJira.summary"></v-text-field></v-col>
+            </v-row>
+            <v-row>
+              <v-col cols="3">Description</v-col>
+              <v-col><v-textarea v-model="currentJira.description"></v-textarea></v-col>
+            </v-row>
+          </v-card-text>
+          <v-card-actions>
+            <v-btn color="blue-darken-1" text @click="jira.dialog=false;saveJira();">Submit</v-btn>
+            <v-btn color="blue-darken-1" text @click="jira.dialog=false;">Cancel</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
       <v-dialog max-width="700px" v-model="silence.dialog" persistent>
         <v-card class="pa-3">
           <v-card-title class="pa-4" style="background-color: purple; color: white; font-size: large; font-weight: bold;">Silence</v-card-title>
@@ -308,8 +328,8 @@
                   <v-btn  
                     value="UNACK"
                     small
-                    style="width: 75px;"
-                    color="blue"
+                    style="width: 75px;color:white !important"
+                    color="blue-lighten-2"
                     elevation=0
                     @click="mark(item, 'NEW')"
                   >UNACK</v-btn>
@@ -333,6 +353,16 @@
                     elevation=0
                     @click="newSilence(item);silence.dialog = true;"
                   >SILENCE</v-btn>
+                </v-list-item>
+                <v-list-item v-if="item.raw.status != 'RESOLVED'" >
+                  <v-btn 
+                    value="JIRA"
+                    small
+                    style="width: 75px;"
+                    color="blue"
+                    elevation=0
+                    @click="newJira(item);jira.dialog = true;"
+                  >JIRA</v-btn>
                 </v-list-item>
                 <v-list-item>
                   <v-btn
