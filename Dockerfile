@@ -22,12 +22,3 @@ RUN rm -rf ./*
 # Copy static assets from builder stage
 COPY --from=builder /app/dist .
 
-# Set working directory to nginx asset directory
-WORKDIR /etc/nginx/conf.d
-
-# Copy static assets from builder stage
-COPY default.conf .
-
-# Containers run nginx with global directives and daemon off
-ENTRYPOINT ["nginx", "-g", "daemon off;"]
-
