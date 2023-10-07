@@ -9,18 +9,20 @@ const routes = [
       {
         path: '',
         name: 'Results',
+        props: true,
         // route level code-splitting
         // this generates a separate chunk (about.[hash].js) for this route
         // which is lazy-loaded when the route is visited.
-        component: () => import(/* webpackChunkName: "results" */ '@/views/Results.vue'),
+        component: () => import(/* webpackChunkName: "results" */ '@/components/ResultList.vue'),
       },
       {
         path: '',
         name: 'Silences',
+        props: true,
         // route level code-splitting
         // this generates a separate chunk (about.[hash].js) for this route
         // which is lazy-loaded when the route is visited.
-        component: () => import(/* webpackChunkName: "results" */ '@/views/Silences.vue'),
+        component: () => import(/* webpackChunkName: "silences" */ '@/components/SilencesList.vue'),
       },
     ],
   },

@@ -18,8 +18,10 @@ export default {
   computed: {
     
   },
+  emits: ['alerts','alert','status'],
   data() {
     return {
+      token: "unknown",
 
       currentJira: {
         id: null,
@@ -223,6 +225,8 @@ export default {
     }
   },
   mounted() {
+    this.login();
+
     setTimeout(() => {
       console.log("*** ALERTS TIMEOUT FIRED ***")
     
@@ -276,13 +280,27 @@ export default {
     autoFetchData() {
       if (this.autoRefresh) { this.fetchData(); }
     },
+
+    login() {
+      axios
+        .get(this.baseUrl + "login",
+          {headers: {
+            "CORTANA_DN": "test.dn"
+          }})
+        .then(response => {
+          this.token = response.headers['cortana_token']
+          console.log("HEADERS "+response.headers)
+          console.log("TOKEN "+this.token)
+        });
+    },
+
     poll() {
       console.log("POLLING: "+this.baseUrl)
       axios
-        .get(this.baseUrl + "poll?sessionId=" + this.sessionId)
+        .get(this.baseUrl + "poll", {headers: {"CORTANA_TOKEN": this.token}})
         .then(response => {
           this.sessionId = response.data.payload.sessionId;
-          this.$emit("alerts", response.data.payload.messageStack);
+          //this.$emit("alerts", response.data.payload.messageStack); 
           this.$emit("status", response.data.payload.statusMessage);
           if (response.data.payload.dataStale) {
             this.refreshStyle = "red lighten-1";
@@ -382,79 +400,10 @@ export default {
         this.$emit("alert", response.data.message, "success");
       }
     },
-    combine() {
-      let ids = "";
-      let delim = "?";
-      this.selected.forEach(row => {
-        ids = ids + delim + "ids=" + row.id;
-        delim = "&";
-      });
-      axios
-        .get(this.baseUrl + "suggestCombine" + ids)
-        .then(response => {
-          console.log(response);
-          this.regexSuggestion = response.data;
-          this.onSuccess(response);
-          this.dialog = true;
-        })
-        .catch(error => {
-          this.handleError(error);
-        });
-    },
-    applyRegex() {
-      let ids = "";
-      let delim = "?";
-      this.selected.forEach(row => {
-        ids = ids + delim + "ids=" + row.id;
-        delim = "&";
-      });
-      axios
-        .post(this.baseUrl + "applyCombine" + ids, this.regexSuggestion, {
-          headers: {
-            "Content-Type": "text/plain"
-          }
-        })
-        //eslint-disable-next-line no-unused-vars
-        .then(response => {
-          this.fetchData();
-          this.onSuccess(response);
-        })
-        .catch(error => {
-          this.handleError(error);
-        });
-    },
-    merge() {
-      let ids = "";
-      let delim = "?";
-      this.selected.forEach(row => {
-        ids = ids + delim + "ids=" + row.id;
-        delim = "&";
-      });
-      //eslint-disable-next-line no-unused-vars
-      axios
-        .put(this.baseUrl + "merge" + ids)
-        .then(response => {
-          this.fetchData();
-          this.onSuccess(response);
-        })
-        .catch(error => {
-          this.handleError(error);
-        });
-    },
-    mergeAll() {
-      axios
-        .put(this.baseUrl + "mergeAll")
-        .then(response => {
-          this.onSuccess(response);
-        })
-        .catch(error => {
-          this.handleError(error);
-        });
-    },
     mark(item, value) {
       console.log("MARK: id=" + item.key + ", status=" + value)
       axios
-        .put(this.baseUrl + "mark?id=" + item.key + "&status=" + value)
+        .put(this.baseUrl + "mark?id=" + item.key + "&status=" + value, {headers: {"CORTANA_TOKEN": this.token}})
         .then(response => {
           this.onSuccess(response);
           this.fetchData();
@@ -471,32 +420,9 @@ export default {
           this.handleError(error);
         });
     },
-    setTeam(item) {
-      setTimeout(() => {
-        axios
-          .put(this.baseUrl + "team?id=" + item.key + "&teams=" + item.teams)
-          .then(response => {
-            this.onSuccess(response);
-          })
-          .catch(error => {
-            this.handleError(error);
-          });
-      }, 100);
-    },
     deleteRecord(id) {
       axios
-        .delete(this.baseUrl + "delete?id=" + id)
-        .then(response => {
-          this.onSuccess(response);
-          this.fetchData();
-        })
-        .catch(error => {
-          this.handleError(error);
-        });
-    },
-    resetCount() {
-      axios
-        .put(this.baseUrl + "resetCount?id=" + this.selected[0].id)
+        .delete(this.baseUrl + "delete?id=" + id, {headers: {"CORTANA_TOKEN": this.token}})
         .then(response => {
           this.onSuccess(response);
           this.fetchData();
@@ -513,7 +439,8 @@ export default {
           this.editItem.message,
           {
             headers: {
-              "Content-Type": "text/plain"
+              "Content-Type": "text/plain",
+              "CORTANA_TOKEN": this.token
             }
           }
         )
@@ -530,7 +457,8 @@ export default {
       axios
         .post(this.baseUrl + "note?id=" + this.note.id, this.note.prefix + ": " + this.note.message, {
           headers: {
-            "Content-Type": "text/plain"
+            "Content-Type": "text/plain",
+            "CORTANA_TOKEN": this.token
           }
         })
         //eslint-disable-next-line no-unused-vars
@@ -580,7 +508,7 @@ export default {
     },
     saveSilence() {
       axios
-        .post(this.baseUrl + "silence", this.currentSilence)
+        .post(this.baseUrl + "silence", this.currentSilence, {headers: {"CORTANA_TOKEN": this.token}})
         //eslint-disable-next-line no-unused-vars
         .then(response => {
           this.onSuccess(response);
@@ -597,7 +525,7 @@ export default {
     },
     saveJira() {
       axios
-        .post(this.baseUrl + "jira", this.currentJira)
+        .post(this.baseUrl + "jira", this.currentJira,{headers: {"CORTANA_TOKEN": this.token}})
         //eslint-disable-next-line no-unused-vars
         .then(response => {
           this.onSuccess(response);
@@ -649,7 +577,7 @@ export default {
       } else {
         console.log("FETCHING: "+urlString)
         axios
-          .get(urlString)
+          .get(urlString, {headers: {"CORTANA_TOKEN": this.token}})
           .then(response => {
             console.log(response.data.payload);
             this.payload = response.data.payload;

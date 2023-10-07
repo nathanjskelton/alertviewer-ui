@@ -90,7 +90,7 @@
             </v-row>
           </v-card-text>
           <v-card-actions>
-            <v-btn color="blue-darken-1" text @click="jira.dialog=false;saveJira();">Submit</v-btn>
+            <v-btn color="blue-darken-1" text @click="jira.dialog=false;saveJira();">Submit </v-btn>
             <v-btn color="blue-darken-1" text @click="jira.dialog=false;">Cancel</v-btn>
           </v-card-actions>
         </v-card>
@@ -200,6 +200,7 @@
               <v-checkbox hide-details dense v-model="statuses" label="NEW" value="NEW"></v-checkbox>
               <v-checkbox hide-details dense v-model="statuses" label="ACKED" value="ACKED"></v-checkbox>
               <v-checkbox hide-details dense v-model="statuses" label="RESOLVED" value="RESOLVED"></v-checkbox>
+              <v-checkbox hide-details dense v-model="statuses" label="SILENCED" value="SILENCED"></v-checkbox>
           </v-card>
         </div>
       </v-navigation-drawer>
@@ -285,6 +286,7 @@
 
     <template v-slot:[`item.icon`]="{ item }">
       <v-icon color=red class="pb-0" v-if="item.raw.status == 'NEW'">mdi-new-box</v-icon> 
+      <v-icon tooltip="Silenced" color=grey class="pb-0" v-if="item.raw.status == 'SILENCED'">mdi-sleep</v-icon> 
       <v-icon tooltip="Acked" color=orange class="pb-0" v-if="item.raw.status == 'ACKED'">mdi-account-check</v-icon> 
       <v-icon color=green class="pb-0" v-if="item.raw.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon> 
     </template>

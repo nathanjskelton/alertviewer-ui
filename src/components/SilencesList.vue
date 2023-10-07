@@ -128,6 +128,7 @@
     import axios from "axios";
 
     export default {
+        emits: ['alerts','alert','status'],
         data() {
             return {
                 currentSilence: {
