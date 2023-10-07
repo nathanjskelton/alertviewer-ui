@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+
+  alertviewer:
+    image: alertviewer
+    ports: 
+      - 8443:443
+    volumes:
+#      - /etc/pki/tls/certs:/etc/nginx/certs
+      - /home/centos/git-repos/compose-stack/certs:/etc/nginx/certs
+      - /etc/pki/tls/private:/etc/nginx/private
+      - ./templates:/etc/nginx/templates
+    environment:
+      - LOGVIEWER_REST_SERVICE=https://ip-10-113-11-219.ec2.internal:8085/
+      - HTTPS_PORT=443
+      - SERVER_NAME=localhost
