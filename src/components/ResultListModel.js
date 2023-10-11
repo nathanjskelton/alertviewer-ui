@@ -283,10 +283,7 @@ export default {
 
     login() {
       axios
-        .get(this.baseUrl + "login",
-          {headers: {
-            "CORTANA_DN": "test.dn"
-          }})
+        .get(this.baseUrl + "login")
         .then(response => {
           this.token = response.headers['cortana_token']
           console.log("HEADERS "+response.headers)
