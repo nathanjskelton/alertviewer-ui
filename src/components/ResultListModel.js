@@ -14,15 +14,16 @@ export default {
   name: "ResultList",
   props: {
     results: String,
+    cortana_token: String,
+    cortana_user: String,
+    cortana_role: String,
   },
   computed: {
     
   },
-  emits: ['alerts','alert','status'],
+  emits: ['alerts','alert','status','token','user','role'],
   data() {
     return {
-      token: "unknown",
-
       currentJira: {
         id: null,
         summary: null,
@@ -183,6 +184,11 @@ export default {
     };
   },
   watch: {
+    cortana_token: {
+      handler() {
+        console.log("cortana_token set on result list: "+this.cortana_token);
+      }
+    },
     statuses: {
       handler() {
 
@@ -283,18 +289,23 @@ export default {
 
     login() {
       axios
-        .get(this.baseUrl + "login")
+        .get(this.baseUrl + "login",
+          {headers: {
+            "CORTANA_DN": "test.dn"
+          }})
         .then(response => {
-          this.token = response.headers['cortana_token']
+          
+          this.$emit("token", response.headers['cortana_token']);
+          this.$emit("user", response.headers['cortana_user']);
+          this.$emit("role", response.headers['cortana_role']);
           console.log("HEADERS "+response.headers)
-          console.log("TOKEN "+this.token)
         });
     },
 
     poll() {
       console.log("POLLING: "+this.baseUrl)
       axios
-        .get(this.baseUrl + "poll", {headers: {"CORTANA_TOKEN": this.token}})
+        .get(this.baseUrl + "poll", {headers: {"CORTANA_TOKEN": this.cortana_token}})
         .then(response => {
           this.sessionId = response.data.payload.sessionId;
           //this.$emit("alerts", response.data.payload.messageStack); 
@@ -400,7 +411,7 @@ export default {
     mark(item, value) {
       console.log("MARK: id=" + item.key + ", status=" + value)
       axios
-        .put(this.baseUrl + "mark?id=" + item.key + "&status=" + value, {headers: {"CORTANA_TOKEN": this.token}})
+        .put(this.baseUrl + "mark?id=" + item.key + "&status=" + value, {headers: {"CORTANA_TOKEN": this.cortana_token}})
         .then(response => {
           this.onSuccess(response);
           this.fetchData();
@@ -419,7 +430,7 @@ export default {
     },
     deleteRecord(id) {
       axios
-        .delete(this.baseUrl + "delete?id=" + id, {headers: {"CORTANA_TOKEN": this.token}})
+        .delete(this.baseUrl + "delete?id=" + id, {headers: {"CORTANA_TOKEN": this.cortana_token}})
         .then(response => {
           this.onSuccess(response);
           this.fetchData();
@@ -437,7 +448,7 @@ export default {
           {
             headers: {
               "Content-Type": "text/plain",
-              "CORTANA_TOKEN": this.token
+              "CORTANA_TOKEN": this.cortana_token
             }
           }
         )
@@ -455,7 +466,7 @@ export default {
         .post(this.baseUrl + "note?id=" + this.note.id, this.note.prefix + ": " + this.note.message, {
           headers: {
             "Content-Type": "text/plain",
-            "CORTANA_TOKEN": this.token
+            "CORTANA_TOKEN": this.cortana_token
           }
         })
         //eslint-disable-next-line no-unused-vars
@@ -505,7 +516,7 @@ export default {
     },
     saveSilence() {
       axios
-        .post(this.baseUrl + "silence", this.currentSilence, {headers: {"CORTANA_TOKEN": this.token}})
+        .post(this.baseUrl + "silence", this.currentSilence, {headers: {"CORTANA_TOKEN": this.cortana_token}})
         //eslint-disable-next-line no-unused-vars
         .then(response => {
           this.onSuccess(response);
@@ -522,7 +533,7 @@ export default {
     },
     saveJira() {
       axios
-        .post(this.baseUrl + "jira", this.currentJira,{headers: {"CORTANA_TOKEN": this.token}})
+        .post(this.baseUrl + "jira", this.currentJira,{headers: {"CORTANA_TOKEN": this.cortana_token}})
         //eslint-disable-next-line no-unused-vars
         .then(response => {
           this.onSuccess(response);
@@ -574,7 +585,7 @@ export default {
       } else {
         console.log("FETCHING: "+urlString)
         axios
-          .get(urlString, {headers: {"CORTANA_TOKEN": this.token}})
+          .get(urlString, {headers: {"CORTANA_TOKEN": this.cortana_token}})
           .then(response => {
             console.log(response.data.payload);
             this.payload = response.data.payload;

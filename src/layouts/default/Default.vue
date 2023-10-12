@@ -1,7 +1,7 @@
 <template>
   <v-app>
-    <app-bar/>
-    <default-view @alerts="setAlerts" @alert="setAlert"  @status="setStatus"  />
+    <app-bar :cortana_user=getUser() :cortana_role=getRole() />
+    <default-view @alerts="setAlerts" @alert="setAlert"  @status="setStatus" @user="setUser" @role="setRole" />
     
     <v-footer app color="white" class="ma-0 pa-0">
       <v-container fluid class="ma-0 pa-0">
@@ -31,10 +31,20 @@
   import { ref } from 'vue'
 
   const alert = ref('');
+  const user = ref('');
+  const role = ref('');
   const status = ref('Initializing...');
   const alerts = ref([]);
   const alertType = ref('success');
   const showAlert = ref(false);
+
+  function getUser() {
+    return this.user;
+  }
+
+  function getRole() {
+    return this.role;
+  }
 
   function setAlert(x, t) {
     alert.value = x;
@@ -42,17 +52,22 @@
     showAlert.value = false;
     setTimeout(() => {showAlert.value = true}, 250);
     setTimeout(() => {showAlert.value = false}, 4000);
-    console.log("setAlert: "+alert+" type: "+t);
   }
 
   function setAlerts(x) {
-    console.log("setAlerts: "+repr(alerts));
     alerts.value = x;
   }
   
   function setStatus(x) {
     status.value = x;
-    console.log("setStatus: "+status);
   }
-  
+
+  function setUser(x) {
+    user.value = x;
+    console.log("Default setUser: "+x);
+  }
+
+  function setRole(x) {
+    role.value = x;
+  }
 </script>

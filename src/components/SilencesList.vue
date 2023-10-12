@@ -128,7 +128,12 @@
     import axios from "axios";
 
     export default {
-        emits: ['alerts','alert','status'],
+        emits: ['alerts','alert','status','token','user','role'],
+        props: {
+          cortana_token: String,
+          cortana_user: String,
+          cortana_role: String,
+        },
         data() {
             return {
                 currentSilence: {
@@ -190,9 +195,16 @@
                 
             }
         },
+        watch: {
+          cortana_token: {
+            handler() {
+              console.log("cortana_token set on silence list: "+this.cortana_token);
+            }
+          },
+        },
         mounted() {
             setTimeout(() => {
-            console.log("*** SILENCES TIMEOUT FIRED ***")
+            console.log("*** SILENCES TIMEOUT FIRED ***");
             
             this.fetchData();
             }, 1000);
@@ -208,7 +220,7 @@
                 urlString = urlString + "request";
 
                     console.log("FETCHING: "+urlString)
-                    axios.get(urlString)
+                    axios.get(urlString, {headers: {"CORTANA_TOKEN": this.cortana_token}})
                     .then(response => {
                         console.log(response.data.payload);
                         this.silences = response.data.payload.silences;
@@ -253,7 +265,7 @@
                 this.silence.dialog = true;
             },
             deleteSilence(id) {
-                axios.delete(this.baseUrl + "deleteSilence?id="+id)
+                axios.delete(this.baseUrl + "deleteSilence?id="+id,{headers: {"CORTANA_TOKEN": this.cortana_token}})
                 //eslint-disable-next-line no-unused-vars
                 .then(response => {
                     this.fetchData();
@@ -263,7 +275,7 @@
                 });                
             },
             saveSilence() {
-                axios.post(this.baseUrl + "silence", this.currentSilence)
+                axios.post(this.baseUrl + "silence", this.currentSilence,{headers: {"CORTANA_TOKEN": this.cortana_token}})
                 //eslint-disable-next-line no-unused-vars
                 .then(response => {
                     this.fetchData();

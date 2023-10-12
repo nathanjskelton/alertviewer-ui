@@ -13,5 +13,4 @@ services:
       - ./templates:/etc/nginx/templates
     environment:
       - LOGVIEWER_REST_SERVICE=https://ip-10-113-11-219.ec2.internal:8085/
-      - HTTPS_PORT=443
       - SERVER_NAME=localhost

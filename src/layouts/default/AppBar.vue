@@ -20,11 +20,16 @@
           <v-list-item>
             <v-list-item-title><router-link class="a menu-link" :to="{ name: 'Silences' }">SILENCES</router-link></v-list-item-title>
           </v-list-item>
+
+          <v-list-item v-if="cortana_role == 'admin'">
+            <v-list-item-title><router-link class="a menu-link" :to="{ name: 'Users' }">USERS</router-link></v-list-item-title>
+          </v-list-item>          
         </v-list>
       </v-menu>
 
       <v-toolbar-title>GM Alert Viewer</v-toolbar-title>
-      
+      <v-spacer/>
+      <div class="mr-5">{{cortana_user}}:{{cortana_role}}</div>
       
 
      
@@ -32,8 +37,15 @@
   </div>
 </template>
 
-<script setup>
-  //
+<script>
+  export default {
+    props: {
+      cortana_user: String,
+      cortana_role: String,
+    },
+
+
+  }
 </script>
 
 <style>
