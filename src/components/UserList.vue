@@ -15,66 +15,59 @@
     <v-btn tile @click="fetchData()" target="_blank" text>
       Query
       <v-icon>mdi-database-refresh</v-icon>
-    </v-btn>
-
-    
+    </v-btn>    
   </v-app-bar>
     
-  <v-data-table
-    dense=true
+  <v-dialog max-width="700px" v-model="user.dialog" persistent>
+    <v-card class="pa-3">
+      <v-card-title class="pa-4" style="background-color: purple; color: white; font-size: large; font-weight: bold;">User</v-card-title>
+      <v-card-text>
+        <v-form dense>
+          
+          <v-row class="px-0 mx-0">
+            <v-col cols=2 class="pt-4 pb-0 px-0 ma-0"><div>SID</div></v-col>
+            <v-col cols=5 class="pa-0 ma-0"><v-text-field v-model="currentUser.id"></v-text-field></v-col>
+          </v-row>
+          <v-row class="pa-0 ma-0">
+            <v-col cols=2 class="pt-4 pb-0 px-0 ma-0"><div>DN</div></v-col>
+            <v-col cols=10 class="pa-0 ma-0"><v-text-field v-model="currentUser.dn"></v-text-field></v-col>
+          </v-row>
+          <v-row class="pa-0 ma-0">
+            <v-col cols=2 class="pt-4 pb-0 px-0 ma-0"><div>Role</div></v-col>
+            <v-col cols=10 class="pa-0 ma-0"> <v-select
+                                                    :items="roles"
+                                                    density="compact"
+                                                    label="Role"
+                                                    v-model="currentUser.role"
+                                              ></v-select></v-col>
+          </v-row>
+        </v-form>
+      </v-card-text>
+      <v-card-actions>
+        <v-btn color="blue-darken-1" text @click="user.dialog=false;saveUser();">Save</v-btn>
+        <v-btn color="blue-darken-1" text @click="user.dialog=false;">Cancel</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>      
+
+
+  <EasyDataTable
     :headers="headers"
     :items="users"
-    item-value="id"
-    :sort-by="[{ key: 'id', order: 'desc' }]"
     :loading="loading"
+    
   >
-
-    <template v-slot:top>
-        <v-dialog max-width="700px" v-model="user.dialog" persistent>
-        <v-card class="pa-3">
-          <v-card-title class="pa-4" style="background-color: purple; color: white; font-size: large; font-weight: bold;">User</v-card-title>
-          <v-card-text>
-            <v-form dense>
-              
-              <v-row class="px-0 mx-0">
-                <v-col cols=2 class="pt-4 pb-0 px-0 ma-0"><div>SID</div></v-col>
-                <v-col cols=5 class="pa-0 ma-0"><v-text-field v-model="currentUser.id"></v-text-field></v-col>
-              </v-row>
-              <v-row class="pa-0 ma-0">
-                <v-col cols=2 class="pt-4 pb-0 px-0 ma-0"><div>DN</div></v-col>
-                <v-col cols=10 class="pa-0 ma-0"><v-text-field v-model="currentUser.dn"></v-text-field></v-col>
-              </v-row>
-              <v-row class="pa-0 ma-0">
-                <v-col cols=2 class="pt-4 pb-0 px-0 ma-0"><div>Role</div></v-col>
-                <v-col cols=10 class="pa-0 ma-0"> <v-select
-                                                       :items="roles"
-                                                       density="compact"
-                                                       label="Role"
-                                                       v-model="currentUser.role"
-                                                  ></v-select></v-col>
-              </v-row>
-            </v-form>
-          </v-card-text>
-          <v-card-actions>
-            <v-btn color="blue-darken-1" text @click="user.dialog=false;saveUser();">Save</v-btn>
-            <v-btn color="blue-darken-1" text @click="user.dialog=false;">Cancel</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-    </template>
-
-
-    <template v-slot:[`item.actions`]="{ item }">
+    <template #item-actions="item">
         <v-container><v-row justify="end">
         <v-col cols=6>
-        <v-btn icon dense size="small" @click="editUser(item.raw);"><v-icon>mdi-pencil</v-icon></v-btn>
+        <v-btn icon dense size="small" @click="editUser(item);"><v-icon>mdi-pencil</v-icon></v-btn>
         </v-col>
         <v-col cols=6>
-        <v-btn icon dense size="small" @click="deleteUser(item.raw.id);"><v-icon>mdi-delete</v-icon></v-btn>
+        <v-btn icon dense size="small" @click="deleteUser(item.id);"><v-icon>mdi-delete</v-icon></v-btn>
         </v-col>
         </v-row></v-container>
     </template>
-  </v-data-table>
+  </EasyDataTable>
 </template>
 
 <script>
@@ -103,7 +96,7 @@
                 headers: [
                     {
                     key: "id",
-                    title: "SID",
+                    text: "SID",
                     align: "left",
                     sortable: true,
                     value: "id",
@@ -112,7 +105,7 @@
                     },
                     {
                     key: "role",
-                    title: "Role",
+                    text: "Role",
                     align: "left",
                     sortable: true,
                     value: "role",
@@ -121,7 +114,7 @@
                     },
                     {
                     key: "dn",
-                    title: "DN",
+                    text: "DN",
                     align: "left",
                     sortable: true,
                     value: "dn",
@@ -130,7 +123,7 @@
                     },
                     {
                     key: "actions",
-                    title: "",
+                    text: "",
                     align: "start",
                     sortable: false,
                     value: "actions",
@@ -158,7 +151,8 @@
 
         },
         methods: {
-            handleError() {
+            handleError(error) {
+              this.$emit("alert", error, "error");
 
             },
             fetchData() {

@@ -53,7 +53,8 @@ export default {
         hoursLeft: 1,
         status: {
             state: "active"
-        }
+        },
+        alertmanager: null,
       },
       silence: {
         dialog: false,
@@ -67,9 +68,8 @@ export default {
       gmInstances: [],
       searchSeverity: [],
       searchGmInstance: [],
-      search: "",
-      regexSuggestion: "",
-      regexAlreadyExists: false,
+      searchValue: "",
+      searchField: ["alert.labels.instance","alert.annotations.service","alert.labels.alertname"],
       showDrawer: true,
       refreshStyle: "",
       dialog: false,
@@ -91,25 +91,23 @@ export default {
         message: null,
         dialog: false
       },
-      combineDisabled: true,
-      mergeDisabled: true,
+
       deleteDisabled: true,
-      name: "Log Entries",
-      selected: [],
+      name: "Alerts",
       expanded: [],
       headers: [
         {
           key: "icon",
-          title: "",
+          text: "",
           align: "center",
-          sortable: true,
-          value: "",
+          sortable: false,
+          value: "icon",
           filterable: false,
           width: 50
         },
         {
           key: "duration",
-          title: "Duration",
+          text: "Duration",
           align: "center",
           sortable: true,
           value: "alert.startsAt",
@@ -118,7 +116,7 @@ export default {
         },
         {
           key: "severity",
-          title: "Severity",
+          text: "Severity",
           align: "center",
           sortable: true,
           value: "alert.labels.severity",
@@ -127,7 +125,7 @@ export default {
         },
         {
           key: "gminstance",
-          title: "GM Instance",
+          text: "GM Instance",
           align: "center",
           sortable: true,
           value: "alert.labels.gm_instance",
@@ -136,7 +134,7 @@ export default {
         },
         {
           key: "system",
-          title: "System",
+          text: "System",
           align: "center",
           sortable: true,
           value: "alert.labels.system",
@@ -145,7 +143,7 @@ export default {
         },
         {
           key: "service",
-          title: "Service",
+          text: "Service",
           align: "center",
           sortable: true,
           value: "alert.annotations.service",
@@ -154,7 +152,7 @@ export default {
         },
         {
           key: "instance",
-          title: "Instance",
+          text: "Instance",
           align: "center",
           sortable: true,
           value: "alert.labels.instance",
@@ -163,7 +161,7 @@ export default {
         },
         {
           key: "message",
-          title: "Message",
+          text: "Message",
           align: "start",
           sortable: true,
           value: "alert.labels.alertname",
@@ -171,7 +169,7 @@ export default {
         },
         {
           key: "actions",
-          title: "",
+          text: "",
           align: "start",
           sortable: false,
           value: "actions",
@@ -180,10 +178,18 @@ export default {
         }
       ],
       loading: true,
-      info: []
+      info: [],
+      alertmanagers: [],
+      sortBy: "alert.startsAt",
+      sortType: "desc",
     };
   },
   watch: {
+    searchValue: {
+      handler() {
+        if (this.searchValue == null) { this.searchValue = ''; }
+      }
+    },
     cortana_token: {
       handler() {
         console.log("cortana_token set on result list: "+this.cortana_token);
@@ -276,10 +282,6 @@ export default {
 
     //END TEST
 
-    customSort(a, b) {
-        console.log("a="+a);
-        console.log("b="+b);
-    },
     getSummaryHeader(summary) {
         return (""+summary).split('\n')[0];
     },
@@ -341,10 +343,10 @@ export default {
       return hours + "h";
     },
     getSeverityColor(item) {
-      if (item.raw.alert.labels.severity == "critical") {
+      if (item.alert.labels.severity == "critical") {
         return "red lighten-1";
       }
-      if (item.raw.alert.labels.severity == "warning") {
+      if (item.alert.labels.severity == "warning") {
         return "yellow";
       }
       return "gray";
@@ -366,42 +368,10 @@ export default {
       }
       return color;
     },
-    styleItem(item) {
-      console.log(item.key);
-      return "red-lighten-5";
-    },
-    itemSelected() {
-      setTimeout(() => {
-        let hasRegex = false;
-        let count = this.selected.length;
-        this.selected.forEach(row => {
-          if (row.regex) {
-            hasRegex = true;
-          }
-        });
-        console.log("hasRegex=" + hasRegex + ", count=" + count);
-        if (count == 1) this.deleteDisabled = false;
-        else this.deleteDisabled = true;
-        if (count > 0 && !hasRegex) {
-          this.combineDisabled = false;
-          this.mergeDisabled = false;
-        } else {
-          this.combineDisabled = true;
-          this.mergeDisabled = true;
-        }
-      }, 100);
-    },
+
     handleError(error) {
       this.$emit("alert", error, "error");
-      /*
-      if (error.response.data.message) {
-        this.$emit("alert", error.response.data.message, "error");
-      } else if (error.response.data) {
-        this.$emit("alert", error.response.data, "error");
-      } else {
-        this.$emit("alert", error, "error");
-      }
-      */
+
     },
     onSuccess(response) {
       if (response && response.data && response.data.message) {
@@ -409,20 +379,12 @@ export default {
       }
     },
     mark(item, value) {
-      console.log("MARK: id=" + item.key + ", status=" + value)
       axios
-        .put(this.baseUrl + "mark?id=" + item.key + "&status=" + value, {headers: {"CORTANA_TOKEN": this.cortana_token}})
+        .put(this.baseUrl + "mark", "id=" + item.id + "&status=" + value ,{headers: {"CORTANA_TOKEN": this.cortana_token}})
         .then(response => {
           this.onSuccess(response);
           this.fetchData();
-          //console.log("THE STATUS IS "+value);
-          //if (value == 'HIDE') {
-          //  this.note.id = item.key;
-          //  this.note.message = "";
-          //  this.note.caption = "Enter a reason for hiding this record";
-          //  this.note.prefix = "Hide Record"
-          //  this.note.dialog = true;
-          //}
+
         })
         .catch(error => {
           this.handleError(error);
@@ -430,32 +392,10 @@ export default {
     },
     deleteRecord(id) {
       axios
-        .delete(this.baseUrl + "delete?id=" + id, {headers: {"CORTANA_TOKEN": this.cortana_token}})
+        .delete(this.baseUrl + "alert?id=" + id, {headers: {"CORTANA_TOKEN": this.cortana_token}})
         .then(response => {
           this.onSuccess(response);
           this.fetchData();
-        })
-        .catch(error => {
-          this.handleError(error);
-        });
-    },
-    save() {
-      console.log(this.editItem.message);
-      axios
-        .post(
-          this.baseUrl + "update?id=" + this.edititem.key,
-          this.editItem.message,
-          {
-            headers: {
-              "Content-Type": "text/plain",
-              "CORTANA_TOKEN": this.cortana_token
-            }
-          }
-        )
-        //eslint-disable-next-line no-unused-vars
-        .then(response => {
-          this.fetchData();
-          this.onSuccess(response);
         })
         .catch(error => {
           this.handleError(error);
@@ -499,16 +439,17 @@ export default {
       }
     },
     newSilence(item) {
-      this.currentSilence.comment = "Silence "+item.raw.alert.labels.alertname;
+      this.currentSilence.comment = "Silence "+item.alert.labels.alertname;
+      this.currentSilence.alertmanager = item.alertmanager;
       this.currentSilence.id = null;
       this.currentSilence.createdBy = "ui";
       this.currentSilence.status.state = "active";
       this.currentSilence.matchers = [];
-      for (const property in item.raw.alert.labels) {      
+      for (const property in item.alert.labels) {      
         this.currentSilence.matchers.push(
           {
             name: `${property}`,
-            value: `${item.raw.alert.labels[property]}`,
+            value: `${item.alert.labels[property]}`,
             isEqual: true
           });
       }
@@ -526,9 +467,9 @@ export default {
         });
     },
     newJira(item) {
-      this.currentJira.id = "cortana:" + item.raw.alert.fingerprint;
-      this.currentJira.description = item.raw.alert.annotations.summary;
-      this.currentJira.summary = "Cortana: " + item.raw.alert.labels.alertname;
+      this.currentJira.id = "cortana:" + item.alert.fingerprint;
+      this.currentJira.description = item.alert.annotations.summary;
+      this.currentJira.summary = "Cortana: " + item.alert.labels.alertname;
       this.jira.dialog = true;
     },
     saveJira() {
@@ -552,8 +493,6 @@ export default {
     },
     fetchData(asExport) {
       this.loading = true;
-      this.itemSelected();
-      this.selected = [];
       this.refreshStyle = "";
       let delim = "?";
       let urlString = this.baseUrl;
@@ -561,7 +500,7 @@ export default {
       if (asExport) {
         urlString = urlString + "export";
       } else {
-        urlString = urlString + "request";
+        urlString = urlString + "alerts";
       }
 
       if (this.statuses != null && this.statuses.length > 0) {
@@ -590,6 +529,7 @@ export default {
             console.log(response.data.payload);
             this.payload = response.data.payload;
             this.silences = response.data.payload.silences;
+            this.alertmanagers = response.data.payload.alertmanagers;
             this.info = response.data.payload.entries;
             this.logTypes = []
             this.payload.severities.forEach(value => {
