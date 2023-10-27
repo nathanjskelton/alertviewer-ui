@@ -237,6 +237,7 @@ export default {
     }
   },
   mounted() {
+    window.console.log("**** STARTING ****");
     this.login();
 
     setTimeout(() => {
@@ -290,15 +291,16 @@ export default {
     },
 
     login() {
+      console.log("logging in, url is " + this.baseUrl + "login");
       axios
         .get(this.baseUrl + "login",
           {headers: {
             "CORTANA_DN": "test.dn"
           }})
         .then(response => {
-          
+          console.log("login response")
           this.$emit("token", response.headers['cortana_token']);
-          this.$emit("user", response.headers['cortana_user']);
+          this.$emit('user', response.headers['cortana_user']);
           this.$emit("role", response.headers['cortana_role']);
           console.log("HEADERS "+response.headers)
         });

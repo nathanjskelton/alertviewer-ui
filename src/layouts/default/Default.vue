@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <app-bar :cortana_user=getUser() :cortana_role=getRole() />
+    <app-bar :cortana_user="getUser()" :cortana_role="getRole()" />
     <default-view @alerts="setAlerts" @alert="setAlert"  @status="setStatus" @user="setUser" @role="setRole" />
     
     <v-footer app color="white" class="ma-0 pa-0">
@@ -27,7 +27,7 @@
   
   import AppBar from './AppBar.vue'
   import DefaultView from './View.vue'
-
+  import axios from "axios";
   import { ref } from 'vue'
 
   const alert = ref('');
@@ -38,12 +38,13 @@
   const alertType = ref('success');
   const showAlert = ref(false);
 
+
   function getUser() {
-    return this.user;
+    return user;
   }
 
   function getRole() {
-    return this.role;
+    return role;
   }
 
   function setAlert(x, t) {
