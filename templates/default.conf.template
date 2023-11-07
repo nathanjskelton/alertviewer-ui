@@ -5,14 +5,17 @@ server {
     root         /usr/share/nginx/html;
     underscores_in_headers on;
 
-    ssl_certificate "/etc/nginx/certs/servercert.pem";
-    ssl_certificate_key "/etc/nginx/certs/servercert.key";
+    #ssl_certificate "/etc/nginx/certs/servercert.pem";
+    ssl_certificate "${SERVER_CERT}";
+    ssl_certificate_key "${SERVER_KEY}";
     ssl_session_cache shared:SSL:1m;
     ssl_session_timeout  10m;
     ssl_ciphers HIGH:!aNULL:!MD5;
     ssl_prefer_server_ciphers on;
-    ssl_password_file "/etc/nginx/certs/passwords.txt";
-    ssl_client_certificate "/etc/nginx/certs/platformsCA.pem";
+    #ssl_password_file "/etc/nginx/certs/passwords.txt";
+    ssl_password_file "${SERVER_PASS_FILE}";
+    #ssl_client_certificate "/etc/nginx/certs/platformsCA.pem";
+    ssl_client_certificate "${CLIENT_CERT}";
     #	ssl_verify_client optional;
     ssl_verify_client on;
 
