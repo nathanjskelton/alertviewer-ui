@@ -50,10 +50,20 @@
     <div class="pa-2" >
       <v-card class="px-2" style="background-color:rgba(0, 0, 0, 0.04);" >
         <v-card-title class="caption">Status</v-card-title>
-          <v-checkbox hide-details dense v-model="statuses" label="NEW" value="NEW"></v-checkbox>
-          <v-checkbox hide-details dense v-model="statuses" label="ACKED" value="ACKED"></v-checkbox>
-          <v-checkbox hide-details dense v-model="statuses" label="RESOLVED" value="RESOLVED"></v-checkbox>
-          <v-checkbox hide-details dense v-model="statuses" label="SILENCED" value="SILENCED"></v-checkbox>
+          <v-checkbox hide-details dense v-model="statuses" label="NEW" value="NEW" append-icon="mdi-bell-ring"></v-checkbox>
+          <v-checkbox hide-details dense v-model="statuses" label="ACKED" value="ACKED" append-icon="mdi-account-check"></v-checkbox>
+          <v-checkbox hide-details dense v-model="statuses" label="RESOLVED" value="RESOLVED" append-icon="mdi-checkbox-marked-circle-outline"></v-checkbox>
+          <v-checkbox hide-details dense v-model="statuses" label="SILENCED" value="SILENCED" append-icon="mdi-sleep"></v-checkbox>
+
+          <!-- 
+
+
+      <v-icon color=red class="pb-0">mdi-bell-ring</v-icon> 
+      <v-icon tooltip="Silenced" color=grey class="pb-0" v-if="item.status == 'SILENCED'">mdi-sleep</v-icon> 
+      <v-icon tooltip="Acked" color=orange class="pb-0" v-if="item.status == 'ACKED'">mdi-account-check</v-icon> 
+      <v-icon color=green class="pb-0" v-if="item.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon>
+
+          -->
       </v-card>
     </div>
   </v-navigation-drawer>

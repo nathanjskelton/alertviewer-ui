@@ -21,7 +21,7 @@
             <v-list-item-title><router-link class="a menu-link" :to="{ name: 'Silences' }">SILENCES</router-link></v-list-item-title>
           </v-list-item>
 
-          <v-list-item v-if="cortana_role == 'admin'">
+          <v-list-item v-if="cortana_role.value == 'admin'">
             <v-list-item-title><router-link class="a menu-link" :to="{ name: 'Users' }">USERS</router-link></v-list-item-title>
           </v-list-item>          
         </v-list>
@@ -29,7 +29,7 @@
 
       <v-toolbar-title>GM Alert Viewer</v-toolbar-title>
       <v-spacer/>
-      <div class="mr-5">{{cortana_user}}:{{cortana_role}}</div>
+      <div class="mr-5">{{cortana_user.value}}:{{cortana_role.value}}</div>
       
 
      

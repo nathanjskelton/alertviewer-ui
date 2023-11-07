@@ -293,12 +293,9 @@ export default {
     login() {
       console.log("logging in, url is " + this.baseUrl + "login");
       axios
-        .get(this.baseUrl + "login",
-          {headers: {
-            "CORTANA_DN": "test.dn"
-          }})
+        .get(this.baseUrl + "login")
         .then(response => {
-          console.log("login response")
+          console.log("login response "+response.headers['cortana_user']+"/"+response.headers['cortana_role'])
           this.$emit("token", response.headers['cortana_token']);
           this.$emit('user', response.headers['cortana_user']);
           this.$emit("role", response.headers['cortana_role']);
