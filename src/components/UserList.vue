@@ -161,7 +161,7 @@
                 urlString = urlString + "users";
 
                     console.log("FETCHING: "+urlString)
-                    axios.get(urlString, {headers: {"CORTANA_TOKEN": this.cortana_token}})
+                    axios.get(urlString, {headers: {"CORTANA-TOKEN": this.cortana_token}})
                     .then(response => {
                         console.log(response.data.payload);
                         this.users = response.data.payload.users;
@@ -183,7 +183,7 @@
     
             },
             deleteUser(id) {
-                axios.delete(this.baseUrl + "user?id="+id,{headers: {"CORTANA_TOKEN": this.cortana_token}})
+                axios.delete(this.baseUrl + "user?id="+id,{headers: {"CORTANA-TOKEN": this.cortana_token}})
                 //eslint-disable-next-line no-unused-vars
                 .then(response => {
                     this.fetchData();
@@ -193,7 +193,7 @@
                 });                
             },
             saveUser() {
-                axios.post(this.baseUrl + "user", this.currentUser,{headers: {"CORTANA_TOKEN": this.cortana_token}})
+                axios.post(this.baseUrl + "user", this.currentUser,{headers: {"CORTANA-TOKEN": this.cortana_token}})
                 //eslint-disable-next-line no-unused-vars
                 .then(response => {
                     this.fetchData();

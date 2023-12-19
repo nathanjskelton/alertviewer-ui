@@ -97,6 +97,15 @@ export default {
       expanded: [],
       headers: [
         {
+          key: "actions",
+          text: "",
+          align: "start",
+          sortable: false,
+          value: "actions",
+          width: 50,
+          filterable: false
+        },        
+        {
           key: "icon",
           text: "",
           align: "center",
@@ -167,15 +176,6 @@ export default {
           value: "alert.labels.alertname",
           filterable: true,
         },
-        {
-          key: "actions",
-          text: "",
-          align: "start",
-          sortable: false,
-          value: "actions",
-          width: 50,
-          filterable: false
-        }
       ],
       loading: true,
       info: [],
@@ -283,8 +283,8 @@ export default {
 
     //END TEST
 
-    getSummaryHeader(summary) {
-        return (""+summary).split('\n')[0];
+    getSummaryHeader(name, summary) {
+        return name+": "+(""+summary).split('\n')[0];
     },
     autoFetchData() {
       if (this.autoRefresh) { this.fetchData(); }
@@ -295,10 +295,10 @@ export default {
       axios
         .get(this.baseUrl + "login")
         .then(response => {
-          console.log("login response "+response.headers['cortana_user']+"/"+response.headers['cortana_role'])
-          this.$emit("token", response.headers['cortana_token']);
-          this.$emit('user', response.headers['cortana_user']);
-          this.$emit("role", response.headers['cortana_role']);
+          console.log("login response "+response.headers['cortana-user']+"/"+response.headers['cortana-role'])
+          this.$emit("token", response.headers['cortana-token']);
+          this.$emit('user', response.headers['cortana-user']);
+          this.$emit("role", response.headers['cortana-role']);
           console.log("HEADERS "+response.headers)
         });
     },
@@ -306,7 +306,7 @@ export default {
     poll() {
       console.log("POLLING: "+this.baseUrl)
       axios
-        .get(this.baseUrl + "poll", {headers: {"CORTANA_TOKEN": this.cortana_token}})
+        .get(this.baseUrl + "poll", {headers: {"CORTANA-TOKEN": this.cortana_token}})
         .then(response => {
           this.sessionId = response.data.payload.sessionId;
           //this.$emit("alerts", response.data.payload.messageStack); 
@@ -370,6 +370,7 @@ export default {
 
     handleError(error) {
       this.$emit("alert", error, "error");
+      this.login();
 
     },
     onSuccess(response) {
@@ -379,7 +380,7 @@ export default {
     },
     mark(item, value) {
       axios
-        .put(this.baseUrl + "mark", "id=" + item.id + "&status=" + value ,{headers: {"CORTANA_TOKEN": this.cortana_token}})
+        .put(this.baseUrl + "mark", "id=" + item.id + "&status=" + value ,{headers: {"CORTANA-TOKEN": this.cortana_token}})
         .then(response => {
           this.onSuccess(response);
           this.fetchData();
@@ -391,7 +392,7 @@ export default {
     },
     deleteRecord(id) {
       axios
-        .delete(this.baseUrl + "alert?id=" + id, {headers: {"CORTANA_TOKEN": this.cortana_token}})
+        .delete(this.baseUrl + "alert?id=" + id, {headers: {"CORTANA-TOKEN": this.cortana_token}})
         .then(response => {
           this.onSuccess(response);
           this.fetchData();
@@ -405,7 +406,7 @@ export default {
         .post(this.baseUrl + "note?id=" + this.note.id, this.note.prefix + ": " + this.note.message, {
           headers: {
             "Content-Type": "text/plain",
-            "CORTANA_TOKEN": this.cortana_token
+            "CORTANA-TOKEN": this.cortana_token
           }
         })
         //eslint-disable-next-line no-unused-vars
@@ -456,7 +457,7 @@ export default {
     },
     saveSilence() {
       axios
-        .post(this.baseUrl + "silence", this.currentSilence, {headers: {"CORTANA_TOKEN": this.cortana_token}})
+        .post(this.baseUrl + "silence", this.currentSilence, {headers: {"CORTANA-TOKEN": this.cortana_token}})
         //eslint-disable-next-line no-unused-vars
         .then(response => {
           this.onSuccess(response);
@@ -473,7 +474,7 @@ export default {
     },
     saveJira() {
       axios
-        .post(this.baseUrl + "jira", this.currentJira,{headers: {"CORTANA_TOKEN": this.cortana_token}})
+        .post(this.baseUrl + "jira", this.currentJira,{headers: {"CORTANA-TOKEN": this.cortana_token}})
         //eslint-disable-next-line no-unused-vars
         .then(response => {
           this.onSuccess(response);
@@ -523,7 +524,7 @@ export default {
       } else {
         console.log("FETCHING: "+urlString)
         axios
-          .get(urlString, {headers: {"CORTANA_TOKEN": this.cortana_token}})
+          .get(urlString, {headers: {"CORTANA-TOKEN": this.cortana_token}})
           .then(response => {
             console.log(response.data.payload);
             this.payload = response.data.payload;

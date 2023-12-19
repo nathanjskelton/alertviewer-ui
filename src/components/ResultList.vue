@@ -256,7 +256,7 @@
               <div style="margin-left: 20px; font-weight: bold; color: #779">{{item.alertmanager}}</div>
 
               <div style="margin-left: 20px; margin-top: 15px; font-weight: bold;">Summary</div>
-              <div style="margin-left: 20px; vertical-align: top; white-space: pre-wrap;">{{item.alert.annotations.summary}}</div>
+              <div style="margin-left: 20px; vertical-align: top; white-space: pre-wrap;" v-html="item.alert.annotations.summary"></div>
 
               <div style="margin-left: 20px;margin-top: 15px;"><span style="font-weight: bold"> Severity: </span> {{item.alert.labels.severity}}</div>
               <div style="margin-left: 20px;"><span style="font-weight: bold"> Instance: </span> {{item.alert.labels.instance}}</div>
@@ -365,8 +365,7 @@
       <div @click="copyDialog.text = item.alert.annotations.summary;
             copyDialog.title='Message Details';
             copyDialog.dialog = true;" 
-          style="cursor: pointer; max-height: 65px;">
-          {{item.alert.labels.alertname}}: {{getSummaryHeader(item.alert.annotations.summary)}}
+          style="cursor: pointer; max-height: 65px;" v-html="getSummaryHeader(item.alert.labels.alertname, item.alert.annotations.summary)">
       </div>
     </template>
 
@@ -376,6 +375,7 @@
       <v-icon tooltip="Acked" color=orange class="pb-0" v-if="item.status == 'ACKED'">mdi-account-check</v-icon> 
       <v-icon color=green class="pb-0" v-if="item.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon> 
     </template>
+
 
     <template #item-actions="item">
       <v-container style="cell-padding: 0;">

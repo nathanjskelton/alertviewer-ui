@@ -19,12 +19,12 @@ server {
     #	ssl_verify_client optional;
     ssl_verify_client on;
 
-    location /api/ {
+    location /cortana/api/ {
         proxy_pass ${LOGVIEWER_REST_SERVICE};
-        proxy_set_header CORTANA_DN $ssl_client_s_dn;
-        proxy_set_header CORTANA_SSL_CERT $ssl_client_escaped_cert;
+        proxy_set_header CORTANA-DN $ssl_client_s_dn;
+        proxy_set_header CORTANA-SSL-CERT $ssl_client_escaped_cert;
     }
-    location /test/ {
+    location /cortana/test/ {
         add_header Content-Type text/plain;
         return 200 "user name: $ssl_client_s_dn $ssl_client_s_dn_legacy";
     }

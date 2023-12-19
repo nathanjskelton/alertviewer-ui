@@ -20,7 +20,7 @@ export default defineConfig({
       },
     }),
   ],
-  base: '/cortana/',
+  base: '/cortana',
   define: { 'process.env': {} },
   resolve: {
     alias: {
