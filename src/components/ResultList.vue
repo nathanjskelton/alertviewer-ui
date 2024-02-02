@@ -11,17 +11,18 @@
     <div style="font-synthesis-small-caps: auto; font-size: x-small; color: purple">FILTERS</div>
 
     <v-spacer></v-spacer>
+    
 
-    <v-btn class="mb-2" icon>
-      <v-switch v-model="autoRefresh"></v-switch>
-    </v-btn>
+    <div class="mt-8 mr-9">
+      <v-switch v-model="autoRefresh" label="auto-refresh"></v-switch>
+    </div>
 
-    <v-btn tile @click="fetchData()" target="_blank" text :color="refreshStyle">
-      Query
+    <v-btn class="mt-2" tile @click="fetchData()" target="_blank" text :color="refreshStyle">
+      Refresh
       <v-icon>mdi-database-refresh</v-icon>
     </v-btn>
 
-    <v-btn tile @click.stop="fetchData(true)" target="_blank" text>
+    <v-btn class="mt-2" tile @click.stop="fetchData(true)" target="_blank" text>
       <div >
         Export
         <v-icon>mdi-application-export</v-icon>

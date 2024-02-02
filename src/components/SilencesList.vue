@@ -119,14 +119,12 @@
   >
 
     <template #item-actions="item">
-        <v-container><v-row justify="end">
-        <v-col cols=2>
-        <v-btn icon dense size="small" @click="editSilence(item);"><v-icon>mdi-pencil</v-icon></v-btn>
-        </v-col>
-        <v-col cols=2>
-        <v-btn icon dense size="small" @click="deleteSilence(item.id);"><v-icon>mdi-delete</v-icon></v-btn>
-        </v-col>
-        </v-row></v-container>
+ 
+      <table><tr><td style="padding: 5px">
+        <v-btn icon dense size="x-small" @click="editSilence(item);"><v-icon>mdi-pencil</v-icon></v-btn>
+      </td><td style="padding: 5px">
+        <v-btn icon dense size="x-small" @click="deleteSilence(item.id);"><v-icon>mdi-delete</v-icon></v-btn>
+      </td></tr></table>
     </template>
 
   </EasyDataTable>
@@ -153,7 +151,7 @@
                             value: null
                         }
                     ],
-                    createdBy: "ui",
+                    createdBy: "unknown",
                     startsAt: null,
                     comment: null,
                     id: null,
@@ -180,7 +178,14 @@
                     sortable: true,
                     value: "comment",
                     filterable: true,
-                    width:120 
+                    },
+                    {
+                    key: "createdBy",
+                    text: "Creator",
+                    align: "left",
+                    sortable: true,
+                    value: "createdBy",
+                    filterable: true,
                     },
                     {
                     key: "alertmanager",
@@ -189,7 +194,6 @@
                     sortable: true,
                     value: "alertmanager",
                     filterable: true,
-                    width:50 
                     },                    
                     {
                     key: "hoursLeft",
@@ -198,7 +202,6 @@
                     sortable: true,
                     value: "hoursLeft",
                     filterable: true,
-                    width:50 
                     },
                     {
                     key: "actions",
@@ -206,7 +209,6 @@
                     align: "start",
                     sortable: false,
                     value: "actions",
-                    width: 130,
                     filterable: false
                     }           
                 ],
@@ -277,7 +279,7 @@
             },
             newSilence() {
                 this.currentSilence.id = null;
-                this.currentSilence.createdBy = "ui";
+                this.currentSilence.createdBy = this.cortana_user;
                 this.currentSilence.status.state = "active";
                 this.currentSilence.comment = "New Silence";
                 this.currentSilence.matchers = [];

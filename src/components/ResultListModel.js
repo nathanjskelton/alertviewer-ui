@@ -43,7 +43,7 @@ export default {
                 value: null
             }
         ],
-        createdBy: "ui",
+        createdBy: "unknown",
         startsAt: null,
         comment: null,
         id: null,
@@ -442,7 +442,7 @@ export default {
       this.currentSilence.comment = "Silence "+item.alert.labels.alertname;
       this.currentSilence.alertmanager = item.alertmanager;
       this.currentSilence.id = null;
-      this.currentSilence.createdBy = "ui";
+      this.currentSilence.createdBy = this.cortana_user;
       this.currentSilence.status.state = "active";
       this.currentSilence.matchers = [];
       for (const property in item.alert.labels) {      
