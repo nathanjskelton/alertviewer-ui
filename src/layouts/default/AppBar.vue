@@ -15,7 +15,6 @@
           <v-list-item>
             <v-list-item-title> <router-link class="a menu-link" :to="{ name: 'Results' }"> ALERTS</router-link></v-list-item-title>
           </v-list-item>
-
           
           <v-list-item>
             <v-list-item-title><router-link class="a menu-link" :to="{ name: 'Silences' }">SILENCES</router-link></v-list-item-title>
@@ -23,7 +22,8 @@
 
           <v-list-item v-if="cortana_role.value == 'admin'">
             <v-list-item-title><router-link class="a menu-link" :to="{ name: 'Users' }">USERS</router-link></v-list-item-title>
-          </v-list-item>          
+          </v-list-item>
+                    
         </v-list>
       </v-menu>
 

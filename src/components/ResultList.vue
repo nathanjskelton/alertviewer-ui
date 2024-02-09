@@ -1,8 +1,8 @@
 /* eslint-disable prettier/prettier */
 <template>
-  <v-app-bar height="40"
+  <v-app-bar 
     color="purple-lighten-5"
-    dense
+    density="compact"
     dark
     flat
   >    
@@ -13,16 +13,16 @@
     <v-spacer></v-spacer>
     
 
-    <div class="mt-8 mr-9">
-      <v-switch v-model="autoRefresh" label="auto-refresh"></v-switch>
+    <div class="mt-6 mr-9" >
+      <v-switch v-model="autoRefresh" label="auto-refresh" density="compact"></v-switch>
     </div>
 
-    <v-btn class="mt-2" tile @click="fetchData()" target="_blank" text :color="refreshStyle">
+    <v-btn class="mt-0" tile @click="fetchData()" target="_blank" text :color="refreshStyle">
       Refresh
       <v-icon>mdi-database-refresh</v-icon>
     </v-btn>
 
-    <v-btn class="mt-2" tile @click.stop="fetchData(true)" target="_blank" text>
+    <v-btn class="mt-0" tile @click.stop="fetchData(true)" target="_blank" text>
       <div >
         Export
         <v-icon>mdi-application-export</v-icon>
@@ -71,6 +71,81 @@
 
 
   <!-- DIALOGS -->
+
+  <v-dialog max-width="90%" v-model="alertDetails.dialog" persistent >
+    <v-card class="pa-3">
+      <v-card-title class="pa-4" style="background-color: purple; color: white; font-size: large; font-weight: bold;">
+        <table style="width: 100%;"><tr><td>Alert Details</td><td align="right"><v-icon @click="alertDetails.dialog=false;">mdi-window-close</v-icon></td></tr></table>
+      </v-card-title>
+      <v-card-text>
+        <v-container fluid>
+          <v-row><v-col>
+
+            <div>
+              <span class="ps-5">
+                <v-chip color="green lighten-1" size="small">STARTED</v-chip>
+                {{ alertDetails.item.friendlyStartTime  }}
+              </span>
+              <span class="ps-5">
+                <v-chip color="red lighten-1" size="small">ENDS</v-chip>
+                {{ alertDetails.item.friendlyEndTime }}
+              </span>
+            </div>
+          </v-col></v-row> 
+          <v-row >
+            <v-col class="pt-0 mt-0" cols="4" offset="0">
+              <div style="margin-left: 20px; font-size: 16px; font-weight: bold;">Details</div>
+            </v-col>
+            <v-col class="pt-0 mt-0">
+              <div style="font-weight: bold; font-size: 16px;">Notes</div>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col class="pt-0 mt-0" cols="4" >
+                <div style="font-size: 14px;margin-left: 20px; font-weight: bold; color: #944">{{alertDetails.item.alert.labels.alertname}}</div>
+                <div style="font-size: 14px;margin-left: 20px; font-weight: bold; color: #779">{{alertDetails.item.alertmanager}}</div>
+
+                <div style="font-size: 14px;margin-left: 20px; margin-top: 15px; font-weight: bold;">Summary</div>
+                <div style="font-size: 12px;margin-left: 20px; vertical-align: top; white-space: pre-wrap;" v-html="alertDetails.item.alert.annotations.summary"></div>
+
+                <div style="font-size: 12px;margin-left: 20px;margin-top: 15px;"><span style="font-weight: bold"> Acked: </span> {{alertDetails.item.acked}}</div>
+                <div style="font-size: 12px;margin-left: 20px;"><span style="font-weight: bold"> Flapping: </span> {{alertDetails.item.flapping}}</div>
+
+
+                <div style="font-size: 12px;margin-left: 20px;margin-top: 15px;"><span style="font-weight: bold"> Severity: </span> {{alertDetails.item.alert.labels.severity}}</div>
+                <div style="font-size: 12px;margin-left: 20px;"><span style="font-weight: bold"> Instance: </span> {{alertDetails.item.alert.labels.instance}}</div>
+                <div style="font-size: 12px;margin-left: 20px;"><span style="font-weight: bold"> GM: </span> {{alertDetails.item.alert.labels.gm_instance}}</div>
+                <div style="font-size: 12px;margin-left: 20px;"><span style="font-weight: bold"> Service: </span> {{alertDetails.item.alert.annotations.service}}</div>
+
+
+                <div style="font-size: 14px;margin-left: 20px; margin-top: 15px;"><span style="font-weight: bold">Additional Labels</span></div>
+                <div v-for="value, label in alertDetails.item.alert.labels" class="mx-0 px-0">
+                  <div v-if="label != 'instance'
+                        && label != 'gm_instance' && label != 'severity'
+                        && label != 'alertname'" style="font-size: 12px;margin-left: 20px;" class="px-0"> <span style="color: #777; font-weight: bold">{{ label }}: </span> {{ value }} </div>
+                </div>
+
+                <div style="font-size: 14px;margin-left: 20px; margin-top: 15px;"><span style="font-weight: bold">Additional Annotations</span></div>
+                <div v-for="value, label in alertDetails.item.alert.annotations" class="mx-0 px-0">
+                  <div v-if="label != 'service'
+                        && label != 'summary'"  style="font-size: 12px;margin-left: 20px;" class="px-0"> <span style="color: #777; font-weight: bold">{{ label }}: </span> {{ value }} </div>
+                </div>
+
+            </v-col>
+            <v-col class="pt-0 mt-0" cols=8>
+              <v-list style="margin-left: 0; padding-left: 0;margin-top: 0; padding-top: 0;background-color: inherit" density="compact">
+                <v-list-item v-for="note in alertDetails.item.notes" class="mx-0 px-0">
+                  <div class="px-0 mx-0" style="font-size: 12px;"><v-chip size="small">{{ note.timestamp }}</v-chip><v-chip size="small">{{ note.user }}</v-chip> {{ note.message }} </div>
+                </v-list-item>
+              </v-list>
+
+            </v-col>
+          </v-row>
+        </v-container>
+      </v-card-text>
+
+    </v-card>
+  </v-dialog>
 
   <v-dialog max-width="500px" v-model="copyDialog.dialog">
     <v-card>
@@ -218,6 +293,9 @@
     ></v-text-field>    
   </v-toolbar>
 
+
+
+
   <EasyDataTable
     :headers="headers"
     :items="info"
@@ -226,105 +304,41 @@
     :sort-type="sortType"
     :search-value="searchValue"
     :search-field="searchField"
-    
+    table-class-name="customize-table"
+  
   >
+  
+    <template #item-alert.labels.alertname="item">
+      {{getSummaryHeader(item.alert.labels.alertname,item.alert.annotations.summary)}}
+    </template>
 
     <template #expand="item">
-      <v-container fluid>
-        <v-row><v-col>
-          <div>
-            <span class="ps-5">
-              <v-chip color="green lighten-1" size="small">STARTED</v-chip>
-              {{ item.friendlyStartTime  }}
-            </span>
-            <span class="ps-5">
-              <v-chip color="red lighten-1" size="small">ENDS</v-chip>
-              {{ item.friendlyEndTime }}
-            </span>
-          </div>
-        </v-col></v-row> 
-        <v-row >
-          <v-col class="pt-0 mt-0" cols="4" offset="0">
-            <div style="margin-left: 20px; font-size: 14px; font-weight: bold;">Alert Details</div>
-          </v-col>
-          <v-col class="pt-0 mt-0">
-            <div style="font-weight: bold; font-size: 14px;">Notes</div>
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col class="pt-0 mt-0" cols="4" >
-              <div style="margin-left: 20px; font-weight: bold; color: #944">{{item.alert.labels.alertname}}</div>
-              <div style="margin-left: 20px; font-weight: bold; color: #779">{{item.alertmanager}}</div>
-
-              <div style="margin-left: 20px; margin-top: 15px; font-weight: bold;">Summary</div>
-              <div style="margin-left: 20px; vertical-align: top; white-space: pre-wrap;" v-html="item.alert.annotations.summary"></div>
-
-              <div style="margin-left: 20px;margin-top: 15px;"><span style="font-weight: bold"> Severity: </span> {{item.alert.labels.severity}}</div>
-              <div style="margin-left: 20px;"><span style="font-weight: bold"> Instance: </span> {{item.alert.labels.instance}}</div>
-              <div style="margin-left: 20px;"><span style="font-weight: bold"> GM Instance: </span> {{item.alert.labels.gm_instance}}</div>
-              <div style="margin-left: 20px;"><span style="font-weight: bold"> Service: </span> {{item.alert.annotations.service}}</div>
-
-
-              <div style="margin-left: 20px; margin-top: 15px;"><span style="font-weight: bold">Additional Labels</span></div>
-              <div v-for="value, label in item.alert.labels" class="mx-0 px-0">
-                <div v-if="label != 'instance'
-                      && label != 'gm_instance' && label != 'severity'
-                      && label != 'alertname'" style="margin-left: 20px;" class="px-0"> <span style="color: #777; font-weight: bold">{{ label }}: </span> {{ value }} </div>
-              </div>
-
-              <div style="margin-left: 20px; margin-top: 15px;"><span style="font-weight: bold">Additional Annotations</span></div>
-              <div v-for="value, label in item.alert.annotations" class="mx-0 px-0">
-                <div v-if="label != 'service'
-                      && label != 'summary'"  style="margin-left: 20px;" class="px-0"> <span style="color: #777; font-weight: bold">{{ label }}: </span> {{ value }} </div>
-              </div>
-
-          </v-col>
-          <v-col class="pt-0 mt-0" cols=8>
-            <v-list style="margin-left: 0; padding-left: 0;margin-top: 0; padding-top: 0;background-color: inherit" density="compact">
-              <v-list-item v-for="item in item.notes" class="mx-0 px-0">
-                <div class="px-0 mx-0"><v-chip size="small">{{ item.timestamp }}</v-chip><v-chip size="small">{{ item.user }}</v-chip> {{ item.message }} </div>
-              </v-list-item>
-            </v-list>
-
-          </v-col>
-        </v-row>
-      </v-container>
+      <div style="border-left: 3px solid #CCC; padding-left: 5px; margin-left: 20px; font-size: 12px; font-weight: bold">{{item.alert.labels.alertname}}: </div>
+      <div style="border-left: 3px solid #CCC; padding-left: 5px; margin-left: 20px; font-size: 12px; vertical-align: top; white-space: pre-wrap;" v-html="item.alert.annotations.summary"></div>
+        
     </template>
 
 
     <template #item-alert.startsAt="item">
-      <v-chip size="small" :color="getLastOccColor(item)">{{ item.duration }}</v-chip>
+      <div ><v-chip size="small" :color="getLastOccColor(item)">{{ item.duration }}</v-chip></div>
     </template>
 
     <template #item-alert.labels.severity="item">
-      <v-chip size="small" :color="getSeverityColor(item)">{{ item.alert.labels.severity }}</v-chip>
+      <div ><v-chip size="small" :color="getSeverityColor(item)">{{ item.alert.labels.severity }}</v-chip></div>
     </template>
 
     <template #item-alert.labels.system="item">
       <div v-if="item.alert.labels.system != null">
-        {{ item.alert.labels.system }}
+        {{ item.alert.labels.system }}1
       </div>
-      <v-chip size="small" color="red" v-if="(item.alert.labels.system == null) && (item.alert.labels.env != null)">
-        {{ item.alert.labels.system }}
-      </v-chip>
+      <div v-if="item.alert.labels.env != null && item.alert.labels.system == null" size="small" style="padding-left: 4px; border-left: 3px solid orange">
+        {{ item.alert.labels.env }}2
+      </div>
+      <div size="small" color="red" v-if="(item.alert.labels.system == null) && (item.alert.labels.env == null)" style="padding-left: 4px; border-left: 3px solid red">
+        system/env MISSING
+      </div>
     </template>    
-    <template #header-alert.labels.alertname="header">
-      <div style="margin-top: 8px; width: 80px;">
-        <v-row no-gutters align-content="start" justify="start">
-        <v-col cols=8>
-          {{header.text}}
-        </v-col>  
-        <v-col cols=4>
-        <v-img
-          height="25"
-          x-small
-          elevation="0"
-        >
-          <v-icon v-if="searchValue != ''" color=blue x-small>mdi-magnify</v-icon>
-        </v-img>
-        </v-col></v-row>
-      </div>
-    </template>
+
 
     <template #header-alert.labels.instance="header">
       <div style="margin-top: 8px; width: 75px;">
@@ -362,34 +376,33 @@
       </div>
     </template>    
 
-    <template #item-alert.labels.alertname="item">
-      <div @click="copyDialog.text = item.alert.annotations.summary;
-            copyDialog.title='Message Details';
-            copyDialog.dialog = true;" 
-          style="cursor: pointer; max-height: 65px;" v-html="getSummaryHeader(item.alert.labels.alertname, item.alert.annotations.summary)">
-      </div>
-    </template>
+
 
     <template #item-icon="item">
-      <v-icon color=red class="pb-0" v-if="item.status == 'NEW'">mdi-bell-ring</v-icon> 
-      <v-icon tooltip="Silenced" color=grey class="pb-0" v-if="item.status == 'SILENCED'">mdi-sleep</v-icon> 
-      <v-icon tooltip="Acked" color=orange class="pb-0" v-if="item.status == 'ACKED'">mdi-account-check</v-icon> 
-      <v-icon color=green class="pb-0" v-if="item.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon> 
+      <table><tr><td>
+      <v-icon color=red class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'NEW'">mdi-bell-ring</v-icon> 
+      <v-icon color=grey class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'SILENCED'">mdi-sleep</v-icon> 
+      <v-icon color=orange class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'ACKED'">mdi-account-check</v-icon> 
+      <v-icon color=green class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon> 
+      </td><td>
+      <v-icon color=red class="pb-0" v-if="item.flapping == true">mdi-swap-vertical</v-icon> 
+      </td></tr></table>
+    </template>
+
+    <template #item-alert.labels.gm_instance="item">
+      <div v-if="item.alert.labels.gm_instance != null">
+        {{item.alert.labels.gm_instance}}
+      </div>
+      <div v-if="item.alert.labels.gm_instance == null" style="padding-left: 4px; border-left: 3px solid orange">
+        legacy
+      </div>
     </template>
 
 
     <template #item-actions="item">
-      <v-container style="cell-padding: 0;">
         <v-menu offset-y>
           <template v-slot:activator="{ props }">
-            <v-img
-              height="25"
-              x-small
-              v-bind="props"
-              elevation="0"
-            >
-              <v-icon x-small>mdi-dots-vertical</v-icon>
-            </v-img>
+            <v-icon small v-bind="props">mdi-dots-vertical</v-icon>
           </template>
           <v-card><v-list>
             <v-list-item v-if="item.status == 'NEW'" >
@@ -453,6 +466,152 @@
                   >NOTE</v-btn>
                 </v-list-item>
                 
+              </v-list>
+            </v-card>
+        </v-menu>
+      
+    </template>
+
+
+
+  </EasyDataTable>
+
+
+<!--
+  <v-data-table
+    density="compact"
+    :headers="headers"
+    :items="info"
+    v-model:expanded="expanded"
+    expand-on-click
+    item-value="id"
+    :sort-by="[{ key: 'alert.startsAt', order: 'desc' }, { key: 'alert.labels.alertname', order: 'asc' }]"
+    multi-sort
+    :loading="loading"
+    :search="search"
+    :item-class="function(item) { 
+      if (item.status == 'RESOLVED') return 'green lighten-5';
+    }"
+  >
+
+
+
+    <template v-slot:expanded-row="{ columns, item }">
+      <tr>
+        <td style="padding: 5px" :colspan="columns.length">
+          <div>{{item.alert.annotations.summary}}</div>
+        </td>
+      </tr>
+    </template>
+
+    <template v-slot:[`item.alert.startsAt`]="{ item }">
+      <div style="width: 100px;">
+        <v-chip small :color="getLastOccColor(item)">{{ item.duration }}</v-chip>
+      </div>
+    </template>
+
+    <template v-slot:[`item.alert.labels.severity`]="{ item }">
+      <v-chip small :color="getSeverityColor(item)">{{ item.alert.labels.severity }}</v-chip>
+    </template>
+
+    <template v-slot:[`item.alert.labels.system`]="{ item }">
+      <div v-if="item.alert.labels.system != null">
+        {{ item.alert.labels.system }}
+      </div>
+      <v-chip color="red" v-if="(item.alert.labels.system == null) && (item.alert.labels.env != null)">
+        {{ item.alert.labels.system }}
+      </v-chip>
+    </template>    
+
+    <template v-slot:[`item.icon`]="{ item }">
+      <v-icon color=red class="pb-0" v-if="item.status == 'NEW'">mdi-new-box</v-icon> 
+      <v-icon tooltip="Silenced" color=grey class="pb-0" v-if="item.status == 'SILENCED'">mdi-sleep</v-icon> 
+      <v-icon tooltip="Acked" color=orange class="pb-0" v-if="item.status == 'ACKED'">mdi-account-check</v-icon> 
+      <v-icon color=green class="pb-0" v-if="item.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon> 
+    </template>
+
+  
+    <template v-slot:[`item.message`]="{ item }">
+      <div 
+          style="cursor: pointer; max-height: 65px;">
+          {{item.alert.labels.alertname}}: {{getSummaryHeader(item.alert.annotations.summary)}} x
+      </div>
+    </template>
+
+    <template v-slot:[`item.info`]="{ item }">
+      <div @click.stop="" style="width: 20px;">
+        <v-icon color=blue @click="alertDetails.dialog=true;alertDetails.item=item;">mdi-information</v-icon>
+      </div>
+    </template>
+
+    <template v-slot:[`item.actions`]="{ item }">
+      <v-container style="cell-padding: 0;width: 20px;">
+        <v-menu offset-y>
+          <template v-slot:activator="{ props }">
+            <v-icon x-small v-bind="props">mdi-dots-vertical</v-icon>
+          </template>
+          <v-card><v-list>
+            <v-list-item v-if="item.status == 'NEW'" >
+                  <v-btn 
+                    value="ACK"
+                    small
+                    style="width: 75px;"
+                    color="green" 
+                    elevation=0
+                    @click="mark(item, 'ACKED')"
+                  >ACK</v-btn>
+                </v-list-item>
+                <v-list-item v-if="item.status == 'ACKED'">
+                  <v-btn  
+                    value="UNACK"
+                    small
+                    style="width: 75px;color:white !important"
+                    color="blue-lighten-2"
+                    elevation=0
+                    @click="mark(item, 'NEW')"
+                  >UNACK</v-btn>
+                </v-list-item>
+                <v-list-item v-if="item.status == 'RESOLVED'"> 
+                  <v-btn  
+                    value="DELETE"
+                    small
+                    style="width: 75px;"
+                    color="red"
+                    elevation=0
+                    @click="deleteRecord(item.key);"
+                  >DELETE</v-btn>
+                </v-list-item>
+                <v-list-item v-if="item.status != 'RESOLVED'" >
+                  <v-btn 
+                    value="SILENCE"
+                    small
+                    style="width: 75px;"
+                    color="red"
+                    elevation=0
+                    @click="newSilence(item);silence.dialog = true;"
+                  >SILENCE</v-btn>
+                </v-list-item>
+                <v-list-item v-if="item.status != 'RESOLVED'" >
+                  <v-btn 
+                    value="JIRA"
+                    small
+                    style="width: 75px;"
+                    color="blue"
+                    elevation=0
+                    @click="newJira(item);jira.dialog = true;"
+                  >JIRA</v-btn>
+                </v-list-item>
+                <v-list-item>
+                  <v-btn
+                    value="NOTE"
+                    small
+                    style="width: 75px;"
+                    color="yellow"
+                    elevation=0
+                    @click="note.dialog = true;note.id = item.key;note.message='';note.prefix='Note';note.caption='Add a note to the record';"
+                  >NOTE</v-btn>
+                </v-list-item>
+                
                 </v-list>
                 </v-card>
         </v-menu>
@@ -460,8 +619,10 @@
     </template>
 
 
+  </v-data-table>
+-->
 
-  </EasyDataTable>
+  
 </template>
 
 

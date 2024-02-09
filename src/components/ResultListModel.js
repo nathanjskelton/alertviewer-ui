@@ -56,6 +56,10 @@ export default {
         },
         alertmanager: null,
       },
+      alertDetails: {
+        dialog: false,
+        item: null,
+      },      
       silence: {
         dialog: false,
       },
@@ -66,6 +70,8 @@ export default {
       sessionId: null,
       logTypes: [],
       gmInstances: [],
+      search: "",
+      selected: [],
       searchSeverity: [],
       searchGmInstance: [],
       searchValue: "",
@@ -97,79 +103,62 @@ export default {
       expanded: [],
       headers: [
         {
-          key: "actions",
           text: "",
           align: "start",
           sortable: false,
           value: "actions",
-          width: 50,
           filterable: false
         },        
         {
-          key: "icon",
           text: "",
           align: "center",
           sortable: false,
           value: "icon",
           filterable: false,
-          width: 50
         },
         {
-          key: "duration",
           text: "Duration",
           align: "center",
           sortable: true,
           value: "alert.startsAt",
           filterable: false,
-          width: 120
         },
         {
-          key: "severity",
           text: "Severity",
           align: "center",
           sortable: true,
           value: "alert.labels.severity",
           filterable: true,
-          width:120 
         },
         {
-          key: "gminstance",
-          text: "GM Instance",
+          text: "GM",
           align: "center",
           sortable: true,
           value: "alert.labels.gm_instance",
           filterable: false,
-          width:125
         },
         {
-          key: "system",
           text: "System",
           align: "center",
           sortable: true,
           value: "alert.labels.system",
           filterable: true,
-          width:125
         },
         {
-          key: "service",
           text: "Service",
           align: "center",
           sortable: true,
           value: "alert.annotations.service",
           filterable: true,
-          width:125
         },
         {
-          key: "instance",
           text: "Instance",
           align: "center",
           sortable: true,
           value: "alert.labels.instance",
           filterable: true,
-          width:125
         },
         {
-          key: "message",
           text: "Message",
           align: "start",
           sortable: true,
@@ -177,6 +166,8 @@ export default {
           filterable: true,
         },
       ],
+
+      
       loading: true,
       info: [],
       alertmanagers: [],
@@ -284,7 +275,7 @@ export default {
     //END TEST
 
     getSummaryHeader(name, summary) {
-        return name+": "+(""+summary).split('\n')[0];
+        return name+": "+(""+summary).split('\n')[0] + "";
     },
     autoFetchData() {
       if (this.autoRefresh) { this.fetchData(); }
@@ -346,7 +337,7 @@ export default {
         return "red lighten-1";
       }
       if (item.alert.labels.severity == "warning") {
-        return "yellow";
+        return "orange lighten-1";
       }
       return "gray";
     },
@@ -492,6 +483,7 @@ export default {
       this.copyDialog.title = '';
     },
     fetchData(asExport) {
+      this.expanded = []
       this.loading = true;
       this.refreshStyle = "";
       let delim = "?";
@@ -531,6 +523,9 @@ export default {
             this.silences = response.data.payload.silences;
             this.alertmanagers = response.data.payload.alertmanagers;
             this.info = response.data.payload.entries;
+            //this.info.forEach(item => {
+            //  this.expanded.push(item.id);
+            //})
             this.logTypes = []
             this.payload.severities.forEach(value => {
               this.logTypes.push(value);
