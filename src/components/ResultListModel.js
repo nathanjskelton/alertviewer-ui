@@ -21,7 +21,7 @@ export default {
   computed: {
     
   },
-  emits: ['alerts','alert','status','token','user','role'],
+  emits: ['alerts','alert','status','token','user','role','alertManagerStatus'],
   data() {
     return {
       currentJira: {
@@ -189,7 +189,8 @@ export default {
     statuses: {
       handler() {
 
-        if (this.statuses == null || this.statuses.length == 0) {
+        if (this.statuses == null || this.statuses.length == 0 ||
+            (this.statuses.length == 1 && this.statuses[0] == "FLAPPING") ) {
           this.statuses.push('NEW');
         }
 
@@ -230,10 +231,13 @@ export default {
   mounted() {
     window.console.log("**** STARTING ****");
     this.login();
+    
 
     setTimeout(() => {
       console.log("*** ALERTS TIMEOUT FIRED ***")
-    
+      console.log("statuses:"+this.query.statuses);
+      console.log("autoRefresh:"+this.query.autoRefresh);
+      this.autoRefresh = true;
       if (this.query.type != null && Array.isArray(this.query.type)) {
         this.searchSeverity = this.query.type;
       } else if (this.query.type) {
@@ -250,6 +254,12 @@ export default {
         this.statuses = this.query.statuses;
       } else if (this.query.statuses) {
         this.statuses = [ this.query.statuses ];
+      }
+
+      if (this.query.autoRefresh == "true") {
+        this.autoRefresh = true;
+      } else {
+        this.autoRefresh = false;
       }
       
       this.poll();
@@ -302,6 +312,8 @@ export default {
           this.sessionId = response.data.payload.sessionId;
           //this.$emit("alerts", response.data.payload.messageStack); 
           this.$emit("status", response.data.payload.statusMessage);
+          this.$emit("alertManagerStatus", response.data.payload.alertManagerStatus);
+          
           if (response.data.payload.dataStale) {
             this.refreshStyle = "red lighten-1";
           }
@@ -535,12 +547,13 @@ export default {
               this.gmInstances.push(value);
             })
             
-          
+            
             this.router.push({
               query: {
                 severity: this.searchSeverity,
                 statuses: this.statuses,
-                gminstances: this.searchGmInstance
+                gminstances: this.searchGmInstance,
+                autoRefresh: this.autoRefresh
               }, replace: true
             });
           

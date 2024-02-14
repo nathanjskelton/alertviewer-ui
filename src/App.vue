@@ -19,5 +19,7 @@
   --easy-table-body-row-font-size: 12px;
 
   --easy-table-body-item-padding: 2px 5px;
+
 }
+
 </style>

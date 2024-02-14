@@ -1,6 +1,6 @@
 <template>
   <v-main>
-    <router-view @alerts="setAlerts" @alert="setAlert"  @status="setStatus" 
+    <router-view @alertManagerStatus="setAlertManagers" @alerts="setAlerts" @alert="setAlert"  @status="setStatus" 
         @token="setToken" @user="setUser" @role="setRole" 
         :cortana_token=this.cortana_token :cortana_user=this.cortana_user :cortana_role=this.cortana_role />
   </v-main>
@@ -36,8 +36,11 @@
         this.cortana_role = cortana_role;
         this.$emit('role', cortana_role);
       },
+      setAlertManagers(ams) {
+        this.$emit('alertManagerStatus', ams);
+      },
     },
-    emits: ['alerts','alert','status','token','user','role'],
+    emits: ['alerts','alert','status','token','user','role','alertManagerStatus'],
   }
 
 </script>

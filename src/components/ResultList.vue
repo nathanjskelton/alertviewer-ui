@@ -40,32 +40,30 @@
         <v-icon>mdi-notification-clear-all</v-icon>
       </v-btn>
     </div>
-    <div class="pa-2">
-        <v-select multiple :items="logTypes" v-model="searchSeverity" label="Severity"></v-select>
+    <div class="pa-2 mt-0 mb-0">
+        <v-select style="max-height: 50px" multiple :items="logTypes" v-model="searchSeverity" label="Severity"></v-select>
     </div>
 
-    <div class="pa-2">   
-        <v-select multiple :items="gmInstances" v-model="searchGmInstance" label="GM Instance"></v-select>
+    <div class="pa-2 mt-0 mb-0">
+        <v-select style="max-height: 50px" multiple :items="gmInstances" v-model="searchGmInstance" label="GM Instance"></v-select>
     </div>
 
     <div class="pa-2" >
       <v-card class="px-2" style="background-color:rgba(0, 0, 0, 0.04);" >
-        <v-card-title class="caption">Status</v-card-title>
-          <v-checkbox hide-details dense v-model="statuses" label="NEW" value="NEW" append-icon="mdi-bell-ring"></v-checkbox>
-          <v-checkbox hide-details dense v-model="statuses" label="ACKED" value="ACKED" append-icon="mdi-account-check"></v-checkbox>
-          <v-checkbox hide-details dense v-model="statuses" label="RESOLVED" value="RESOLVED" append-icon="mdi-checkbox-marked-circle-outline"></v-checkbox>
-          <v-checkbox hide-details dense v-model="statuses" label="SILENCED" value="SILENCED" append-icon="mdi-sleep"></v-checkbox>
-
-          <!-- 
-
-
-      <v-icon color=red class="pb-0">mdi-bell-ring</v-icon> 
-      <v-icon tooltip="Silenced" color=grey class="pb-0" v-if="item.status == 'SILENCED'">mdi-sleep</v-icon> 
-      <v-icon tooltip="Acked" color=orange class="pb-0" v-if="item.status == 'ACKED'">mdi-account-check</v-icon> 
-      <v-icon color=green class="pb-0" v-if="item.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon>
-
-          -->
+        <v-card-title style="max-height: 45px" class="caption">Status</v-card-title>
+          <v-checkbox style="max-height: 45px" hide-details dense v-model="statuses" label="FIRING" value="NEW" append-icon="mdi-bell-ring"></v-checkbox>
+          
+          <v-checkbox style="max-height: 45px" hide-details dense v-model="statuses" label="ACKED" value="ACKED" append-icon="mdi-account-check"></v-checkbox>
+          <v-checkbox style="max-height: 45px" hide-details dense v-model="statuses" label="RESOLVED" value="RESOLVED" append-icon="mdi-checkbox-marked-circle-outline"></v-checkbox>
+          <v-checkbox style="margin-bottom: 10px; max-height: 45px" hide-details dense v-model="statuses" label="SILENCED" value="SILENCED" append-icon="mdi-sleep"></v-checkbox>
+          
       </v-card>
+
+      <v-card class="mt-2 px-2" style="background-color:rgba(0, 0, 0, 0.04);" >
+        <v-card-title style="max-height: 45px" class="caption">Attributes</v-card-title>
+        <v-checkbox style="margin-bottom: 10px; max-height: 45px" hide-details dense v-model="statuses" label="FLAPPING" value="FLAPPING" append-icon="mdi-swap-vertical"></v-checkbox>
+      </v-card>
+
     </div>
   </v-navigation-drawer>
 
@@ -295,7 +293,6 @@
 
 
 
-
   <EasyDataTable
     :headers="headers"
     :items="info"
@@ -309,7 +306,9 @@
   >
   
     <template #item-alert.labels.alertname="item">
-      {{getSummaryHeader(item.alert.labels.alertname,item.alert.annotations.summary)}}
+      <div style="max-height: 65px;" v-html="getSummaryHeader(item.alert.labels.alertname, item.alert.annotations.summary)">
+      </div>
+
     </template>
 
     <template #expand="item">
@@ -329,10 +328,10 @@
 
     <template #item-alert.labels.system="item">
       <div v-if="item.alert.labels.system != null">
-        {{ item.alert.labels.system }}1
+        {{ item.alert.labels.system }}
       </div>
       <div v-if="item.alert.labels.env != null && item.alert.labels.system == null" size="small" style="padding-left: 4px; border-left: 3px solid orange">
-        {{ item.alert.labels.env }}2
+        {{ item.alert.labels.env }}
       </div>
       <div size="small" color="red" v-if="(item.alert.labels.system == null) && (item.alert.labels.env == null)" style="padding-left: 4px; border-left: 3px solid red">
         system/env MISSING
@@ -390,10 +389,15 @@
     </template>
 
     <template #item-alert.labels.gm_instance="item">
-      <div v-if="item.alert.labels.gm_instance != null">
+      <div v-if="item.alert.labels.gm_instance != null && item.alert.annotations.gm_instance_from_am == null">
         {{item.alert.labels.gm_instance}}
       </div>
-      <div v-if="item.alert.labels.gm_instance == null" style="padding-left: 4px; border-left: 3px solid orange">
+      <div v-if="item.alert.labels.gm_instance != null && item.alert.annotations.gm_instance_from_am == 'true'" 
+          style="padding-left: 4px; border-left: 3px solid orange">
+        {{item.alert.labels.gm_instance}}
+      </div>
+      <div v-if="item.alert.labels.gm_instance == null" 
+          style="padding-left: 4px; border-left: 3px solid red">
         legacy
       </div>
     </template>

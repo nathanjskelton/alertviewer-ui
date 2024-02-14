@@ -1,7 +1,8 @@
 <template>
   <v-app>
     <app-bar :cortana_user=getUser() :cortana_role=getRole() />
-    <default-view @alerts="setAlerts" @alert="setAlert"  @status="setStatus" @user="setUser" @role="setRole" />
+    <default-view @alertManagerStatus="setAlertManagers" 
+      @alerts="setAlerts" @alert="setAlert"  @status="setStatus" @user="setUser" @role="setRole" />
     
     <v-footer app color="white" class="ma-0 pa-0">
       <v-container fluid class="ma-0 pa-0">
@@ -13,7 +14,10 @@
       </v-row>
       <v-row dense >
         <v-col class="ma-0 pa-0">
-        <v-card class="pa-0" height="30px" flat color="grey lighten-2"><v-card-text class="pt-1 ps-5">{{ status }}</v-card-text></v-card>
+        <v-card class="pa-0" height="30px" flat color="grey lighten-2"><v-card-text class="pt-1 ps-5">
+          {{ status }}  <span style="padding-left: 20px;" v-for="item, key in alertManagerStatus">
+            <v-icon color=red v-if="item==false" class="mb-1">mdi-alert-circle</v-icon>
+            <v-icon v-if="item==true" class="mb-1">mdi-check-circle</v-icon>  {{key}}</span></v-card-text></v-card>
         </v-col>
       </v-row>
       </v-container>
@@ -37,7 +41,8 @@
   const alerts = ref([]);
   const alertType = ref('success');
   const showAlert = ref(false);
-
+  
+  const alertManagerStatus = ref('');
 
   function getUser() {
     return user;
@@ -70,5 +75,11 @@
 
   function setRole(x) {
     role.value = x;
+  }
+
+  function setAlertManagers(ams) {
+    let txt = "";
+
+    alertManagerStatus.value = ams;
   }
 </script>
