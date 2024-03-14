@@ -19,7 +19,8 @@ import 'vue3-easy-data-table/dist/style.css';
 const app = createApp(App)
 app.component('EasyDataTable', Vue3EasyDataTable);
 app.config.globalProperties.baseUrl = import.meta.env.VITE_APP_SERVER_URL;
-//app.config.globalProperties.baseUrl = "/api/";
+app.config.globalProperties.appVersion = import.meta.env.VITE_APP_VERSION;
+app.config.globalProperties.appMode = import.meta.env.VITE_APP_MODE;
 
 registerPlugins(app)
 

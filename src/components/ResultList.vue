@@ -113,7 +113,7 @@
                 <div style="font-size: 12px;margin-left: 20px;margin-top: 15px;"><span style="font-weight: bold"> Severity: </span> {{alertDetails.item.alert.labels.severity}}</div>
                 <div style="font-size: 12px;margin-left: 20px;"><span style="font-weight: bold"> Instance: </span> {{alertDetails.item.alert.labels.instance}}</div>
                 <div style="font-size: 12px;margin-left: 20px;"><span style="font-weight: bold"> GM: </span> {{alertDetails.item.alert.labels.gm_instance}}</div>
-                <div style="font-size: 12px;margin-left: 20px;"><span style="font-weight: bold"> Service: </span> {{alertDetails.item.alert.annotations.service}}</div>
+                <div style="font-size: 12px;margin-left: 20px;"><span style="font-weight: bold"> Team: </span> {{alertDetails.item.alert.labels.team}}</div>
 
 
                 <div style="font-size: 14px;margin-left: 20px; margin-top: 15px;"><span style="font-weight: bold">Additional Labels</span></div>
@@ -305,7 +305,7 @@
   
   >
   
-    <template #item-alert.labels.alertname="item">
+    <template #item-alert.annotations.summary="item">
       <div style="max-height: 65px;" v-html="getSummaryHeader(item.alert.labels.alertname, item.alert.annotations.summary)">
       </div>
 
@@ -326,15 +326,21 @@
       <div ><v-chip size="small" :color="getSeverityColor(item)">{{ item.alert.labels.severity }}</v-chip></div>
     </template>
 
-    <template #item-alert.labels.system="item">
-      <div v-if="item.alert.labels.system != null">
-        {{ item.alert.labels.system }}
+    <template #item-alert.labels.alertname="item">
+      <div v-if="item.alert.labels.service != null" style="padding-left: 4px; border-left: 3px solid orange"> 
+        {{ item.alert.labels.service }}
       </div>
-      <div v-if="item.alert.labels.env != null && item.alert.labels.system == null" size="small" style="padding-left: 4px; border-left: 3px solid orange">
-        {{ item.alert.labels.env }}
+      <div v-if="item.alert.labels.service == null">
+        {{ item.alert.labels.alertname }}
       </div>
-      <div size="small" color="red" v-if="(item.alert.labels.system == null) && (item.alert.labels.env == null)" style="padding-left: 4px; border-left: 3px solid red">
-        system/env MISSING
+    </template>
+
+    <template #item-alert.labels.team="item">
+      <div v-if="item.alert.labels.team != null">
+        {{ item.alert.labels.team }}
+      </div>
+      <div size="small" color="red" v-if="(item.alert.labels.team == null)" style="padding-left: 4px; border-left: 3px solid red">
+        TEAM MISSING
       </div>
     </template>    
 
@@ -357,7 +363,7 @@
       </div>
     </template>
     
-    <template #header-alert.annotations.service="header">
+    <template #header-alert.labels.alertname="header">
       <div style="margin-top: 8px; width: 70px;">
         <v-row no-gutters align-content="start" justify="start">
         <v-col cols=8>

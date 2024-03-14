@@ -28,6 +28,8 @@ export default {
         id: null,
         summary: null,
         description: null,
+        system: null,
+        environment: null,
       },
 
       jira: {
@@ -138,17 +140,10 @@ export default {
           filterable: false,
         },
         {
-          text: "System",
+          text: "Alertname",
           align: "center",
           sortable: true,
-          value: "alert.labels.system",
-          filterable: true,
-        },
-        {
-          text: "Service",
-          align: "center",
-          sortable: true,
-          value: "alert.annotations.service",
+          value: "alert.labels.alertname",
           filterable: true,
         },
         {
@@ -159,10 +154,17 @@ export default {
           filterable: true,
         },
         {
-          text: "Message",
+          text: "Team",
+          align: "center",
+          sortable: true,
+          value: "alert.labels.team",
+          filterable: true,
+        },
+        {
+          text: "Summary",
           align: "start",
           sortable: true,
-          value: "alert.labels.alertname",
+          value: "alert.annotations.summary",
           filterable: true,
         },
       ],
@@ -238,10 +240,10 @@ export default {
       console.log("statuses:"+this.query.statuses);
       console.log("autoRefresh:"+this.query.autoRefresh);
       this.autoRefresh = true;
-      if (this.query.type != null && Array.isArray(this.query.type)) {
-        this.searchSeverity = this.query.type;
-      } else if (this.query.type) {
-        this.searchSeverity = [ this.query.type ];
+      if (this.query.severity != null && Array.isArray(this.query.severity)) {
+        this.searchSeverity = this.query.severity;
+      } else if (this.query.severity) {
+        this.searchSeverity = [ this.query.severity ];
       }
 
       if (this.query.gmInstances != null && Array.isArray(this.query.gmInstances)) {
@@ -285,7 +287,7 @@ export default {
     //END TEST
 
     getSummaryHeader(name, summary) {
-        return name+": "+(""+summary).split('\n')[0] + "";
+        return (""+summary).split('\n')[0] + "";
     },
     autoFetchData() {
       if (this.autoRefresh) { this.fetchData(); }
@@ -473,6 +475,7 @@ export default {
       this.currentJira.id = "cortana:" + item.alert.fingerprint;
       this.currentJira.description = item.alert.annotations.summary;
       this.currentJira.summary = "Cortana: " + item.alert.labels.alertname;
+      this.currentJira.system = item.alert.labels.gm_instance;
       this.jira.dialog = true;
     },
     saveJira() {
@@ -518,7 +521,7 @@ export default {
       }
 
       if (this.searchGmInstance != null && this.searchGmInstance.length > 0) {
-        urlString = urlString + delim + "gminstances=" + this.searchGmInstance;
+        urlString = urlString + delim + "gmInstances=" + this.searchGmInstance;
         delim = "&";
       }
       
@@ -552,7 +555,7 @@ export default {
               query: {
                 severity: this.searchSeverity,
                 statuses: this.statuses,
-                gminstances: this.searchGmInstance,
+                gmInstances: this.searchGmInstance,
                 autoRefresh: this.autoRefresh
               }, replace: true
             });

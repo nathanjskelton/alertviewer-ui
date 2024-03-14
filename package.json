@@ -1,6 +1,6 @@
 {
-  "name": "alertviewer-ui3",
-  "version": "0.0.0",
+  "name": "alertviewer-ui",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "vite",
