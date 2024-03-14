@@ -1,3 +1,6 @@
 #!/bin/bash
+X=`node get_version.js`
 
-docker build -t containeryard.evoforge.org/gmdev/platform/cortana-ui:$1 .
+echo "*** Building version $X ***"
+npm run build
+docker build -t containeryard.evoforge.org/gmdev/platform/cortana-ui:$X .
