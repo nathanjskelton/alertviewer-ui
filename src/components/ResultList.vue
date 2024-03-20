@@ -35,17 +35,25 @@
 
   <v-navigation-drawer v-model="showDrawer" app color="purple-lighten-5">
     <div class="px-2 mt-0">
-      <v-btn width=250 height=50 @click="searchValue='';searchGmInstance=[];searchSeverity=[];gmInstances =[];statuses=[]" target="_blank" text style="background-color:rgba(0, 0, 0, 0.04);">
+      <v-btn width=250 height=50 @click="searchValue='';searchGmInstance=[];groupField=null;searchSeverity=[];gmInstances =[];statuses=[]" target="_blank" text style="background-color:rgba(0, 0, 0, 0.04);">
         <span class="mr-2">Clear</span>
         <v-icon>mdi-notification-clear-all</v-icon>
       </v-btn>
     </div>
+    <!--
+    <div class="pa-2 mt-0 mb-0"><table style="width: 100%"><tr>
+      <td v-if="this.groupField != null" style="width: 30px"><v-icon @click="this.groupField=null;">mdi-broom</v-icon></td>
+        <v-select style="max-height: 50px" :items="allFields" v-model="groupField" label="Group by Field"></v-select>
+      <td></td></tr></table>
+    </div>
+    -->
+    
     <div class="pa-2 mt-0 mb-0">
         <v-select style="max-height: 50px" multiple :items="logTypes" v-model="searchSeverity" label="Severity"></v-select>
     </div>
 
     <div class="pa-2 mt-0 mb-0">
-        <v-select style="max-height: 50px" multiple :items="gmInstances" v-model="searchGmInstance" label="GM Instance"></v-select>
+      <v-select style="max-height: 50px" multiple :items="gmInstances" v-model="searchGmInstance" label="GM Instance"></v-select>
     </div>
 
     <div class="pa-2" >
@@ -364,7 +372,7 @@
     </template>
     
     <template #header-alert.labels.alertname="header">
-      <div style="margin-top: 8px; width: 70px;">
+      <div style="margin-top: 8px; width: 85px;">
         <v-row no-gutters align-content="start" justify="start">
         <v-col cols=8>
           {{header.text}}
@@ -381,6 +389,41 @@
       </div>
     </template>    
 
+    <template #header-alert.annotations.summary="header">
+      <div style="margin-top: 8px; width: 85px;">
+        <v-row no-gutters align-content="start" justify="start">
+        <v-col cols=8>
+          {{header.text}}
+        </v-col>  
+        <v-col cols=4>
+        <v-img
+          height="25"
+          x-small
+          elevation="0"
+        >
+          <v-icon v-if="searchValue != ''" color=blue x-small>mdi-magnify</v-icon>
+        </v-img>
+        </v-col></v-row>
+      </div>
+    </template>   
+
+    <template #header-alert.labels.team="header">
+      <div style="margin-top: 8px; width: 60px;">
+        <v-row no-gutters align-content="start" justify="start">
+        <v-col cols=8>
+          {{header.text}}
+        </v-col>  
+        <v-col cols=4>
+        <v-img
+          height="25"
+          x-small
+          elevation="0"
+        >
+          <v-icon v-if="searchValue != ''" color=blue x-small>mdi-magnify</v-icon>
+        </v-img>
+        </v-col></v-row>
+      </div>
+    </template>   
 
 
     <template #item-icon="item">

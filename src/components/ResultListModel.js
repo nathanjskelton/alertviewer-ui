@@ -73,11 +73,13 @@ export default {
       logTypes: [],
       gmInstances: [],
       search: "",
+      groupField: null,
+      allFields: [],
       selected: [],
       searchSeverity: [],
       searchGmInstance: [],
       searchValue: "",
-      searchField: ["alert.labels.instance","alert.annotations.service","alert.labels.alertname"],
+      searchField: ["alert.labels.instance","alert.labels.team","alert.labels.alertname","alert.annotations.summary"],
       showDrawer: true,
       refreshStyle: "",
       dialog: false,
@@ -130,7 +132,7 @@ export default {
           align: "center",
           sortable: true,
           value: "alert.labels.severity",
-          filterable: true,
+          filterable: false,
         },
         {
           text: "GM",
@@ -256,6 +258,10 @@ export default {
         this.statuses = this.query.statuses;
       } else if (this.query.statuses) {
         this.statuses = [ this.query.statuses ];
+      }
+
+      if (this.query.groupField != null && this.query.groupField != '') {
+        this.groupField = this.query.groupField;
       }
 
       if (this.query.autoRefresh == "true") {
@@ -524,6 +530,11 @@ export default {
         urlString = urlString + delim + "gmInstances=" + this.searchGmInstance;
         delim = "&";
       }
+
+      if (this.groupField != null && this.groupField != "") {
+        urlString = urlString + delim + "groupField=" + this.groupField;
+        delim = "&";
+      }
       
       if (asExport) {
         window.open(urlString, "_blank");
@@ -537,7 +548,7 @@ export default {
             this.payload = response.data.payload;
             this.silences = response.data.payload.silences;
             this.alertmanagers = response.data.payload.alertmanagers;
-            this.info = response.data.payload.entries;
+            this.info = response.data.payload.entries.ALL;
             //this.info.forEach(item => {
             //  this.expanded.push(item.id);
             //})
@@ -549,6 +560,9 @@ export default {
             this.payload.instances.forEach(value => {
               this.gmInstances.push(value);
             })
+            this.payload.allFields.forEach(value => {
+              this.allFields.push(value);
+            })
             
             
             this.router.push({
@@ -556,6 +570,7 @@ export default {
                 severity: this.searchSeverity,
                 statuses: this.statuses,
                 gmInstances: this.searchGmInstance,
+                groupField: this.groupField,
                 autoRefresh: this.autoRefresh
               }, replace: true
             });
