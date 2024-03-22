@@ -24,6 +24,7 @@ export default {
   emits: ['alerts','alert','status','token','user','role','alertManagerStatus'],
   data() {
     return {
+      panel: [],
       currentJira: {
         id: null,
         summary: null,
@@ -174,6 +175,7 @@ export default {
       
       loading: true,
       info: [],
+      testInfo: ['ALL', 'Other'],
       alertmanagers: [],
       sortBy: "alert.startsAt",
       sortType: "desc",
@@ -207,6 +209,16 @@ export default {
     },
     searchSeverity: {
       handler() {
+        if (this.autoRefresh) {
+          this.fetchData();
+        } else {
+          this.refreshStyle = "orange";
+        }
+      }
+    },
+    groupField: {
+      handler() {
+        this.panel=[];
         if (this.autoRefresh) {
           this.fetchData();
         } else {
@@ -548,7 +560,7 @@ export default {
             this.payload = response.data.payload;
             this.silences = response.data.payload.silences;
             this.alertmanagers = response.data.payload.alertmanagers;
-            this.info = response.data.payload.entries.ALL;
+            this.info = response.data.payload.entries;
             //this.info.forEach(item => {
             //  this.expanded.push(item.id);
             //})
@@ -575,6 +587,13 @@ export default {
               }, replace: true
             });
           
+
+            if (this.panel == "") {
+              var keys = Object.keys(this.info);
+              
+              this.panel = [keys[0]];
+              console.log(this.panel);
+            }
           
             this.loading = false;
           })

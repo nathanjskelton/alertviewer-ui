@@ -22,4 +22,5 @@
 
 }
 
+.v-expansion-panel-text__wrapper { padding: 0 !important; }
 </style>

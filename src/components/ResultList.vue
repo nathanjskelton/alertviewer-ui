@@ -35,18 +35,18 @@
 
   <v-navigation-drawer v-model="showDrawer" app color="purple-lighten-5">
     <div class="px-2 mt-0">
-      <v-btn width=250 height=50 @click="searchValue='';searchGmInstance=[];groupField=null;searchSeverity=[];gmInstances =[];statuses=[]" target="_blank" text style="background-color:rgba(0, 0, 0, 0.04);">
+      <v-btn width=250 height=50 @click="searchValue='';searchGmInstance=[];panel=[];groupField=null;searchSeverity=[];gmInstances =[];statuses=[]" target="_blank" text style="background-color:rgba(0, 0, 0, 0.04);">
         <span class="mr-2">Clear</span>
         <v-icon>mdi-notification-clear-all</v-icon>
       </v-btn>
     </div>
-    <!--
+    
     <div class="pa-2 mt-0 mb-0"><table style="width: 100%"><tr>
-      <td v-if="this.groupField != null" style="width: 30px"><v-icon @click="this.groupField=null;">mdi-broom</v-icon></td>
+      <td v-if="groupField != null" style="width: 30px"><v-icon @click="groupField=null;panel=[];fetchData();">mdi-broom</v-icon></td>
         <v-select style="max-height: 50px" :items="allFields" v-model="groupField" label="Group by Field"></v-select>
       <td></td></tr></table>
     </div>
-    -->
+    
     
     <div class="pa-2 mt-0 mb-0">
         <v-select style="max-height: 50px" multiple :items="logTypes" v-model="searchSeverity" label="Severity"></v-select>
@@ -300,382 +300,251 @@
   </v-toolbar>
 
 
+  <v-expansion-panels v-model="panel" multiple>
+    <v-expansion-panel v-for="list, key in info" :value="key">
+      <v-expansion-panel-title style="min-height: 18px; height: 18px; border-bottom: 1px solid #aaa; background-color: #eee;">
+        <template v-slot:default="{ expanded }">
 
-  <EasyDataTable
-    :headers="headers"
-    :items="info"
-    :loading="loading"
-    :sort-by="sortBy"
-    :sort-type="sortType"
-    :search-value="searchValue"
-    :search-field="searchField"
-    table-class-name="customize-table"
-  
-  >
-  
-    <template #item-alert.annotations.summary="item">
-      <div style="max-height: 65px;" v-html="getSummaryHeader(item.alert.labels.alertname, item.alert.annotations.summary)">
-      </div>
+            <div v-if="key == 'ALL'">
+              All Records (No Group Filter)
+            </div>
+            <div v-if="key != 'ALL'">
+            {{key}}
+            </div>
 
-    </template>
-
-    <template #expand="item">
-      <div style="border-left: 3px solid #CCC; padding-left: 5px; margin-left: 20px; font-size: 12px; font-weight: bold">{{item.alert.labels.alertname}}: </div>
-      <div style="border-left: 3px solid #CCC; padding-left: 5px; margin-left: 20px; font-size: 12px; vertical-align: top; white-space: pre-wrap;" v-html="item.alert.annotations.summary"></div>
+        </template>
+      </v-expansion-panel-title>
+      <v-expansion-panel-text >
+        <EasyDataTable
+          :headers="headers"
+          :items="list"
+          :loading="loading"
+          :sort-by="sortBy"
+          :sort-type="sortType"
+          :search-value="searchValue"
+          :search-field="searchField"
+          table-min-height="10"
+          table-class-name="customize-table"
         
-    </template>
-
-
-    <template #item-alert.startsAt="item">
-      <div ><v-chip size="small" :color="getLastOccColor(item)">{{ item.duration }}</v-chip></div>
-    </template>
-
-    <template #item-alert.labels.severity="item">
-      <div ><v-chip size="small" :color="getSeverityColor(item)">{{ item.alert.labels.severity }}</v-chip></div>
-    </template>
-
-    <template #item-alert.labels.alertname="item">
-      <div v-if="item.alert.labels.service != null" style="padding-left: 4px; border-left: 3px solid orange"> 
-        {{ item.alert.labels.service }}
-      </div>
-      <div v-if="item.alert.labels.service == null">
-        {{ item.alert.labels.alertname }}
-      </div>
-    </template>
-
-    <template #item-alert.labels.team="item">
-      <div v-if="item.alert.labels.team != null">
-        {{ item.alert.labels.team }}
-      </div>
-      <div size="small" color="red" v-if="(item.alert.labels.team == null)" style="padding-left: 4px; border-left: 3px solid red">
-        TEAM MISSING
-      </div>
-    </template>    
-
-
-    <template #header-alert.labels.instance="header">
-      <div style="margin-top: 8px; width: 75px;">
-        <v-row no-gutters align-content="start" justify="start">
-        <v-col cols=8>
-          {{header.text}}
-        </v-col>  
-        <v-col cols=4>
-        <v-img
-          height="25"
-          x-small
-          elevation="0"
         >
-          <v-icon v-if="searchValue != ''" color=blue x-small>mdi-magnify</v-icon>
-        </v-img>
-        </v-col></v-row>
-      </div>
-    </template>
-    
-    <template #header-alert.labels.alertname="header">
-      <div style="margin-top: 8px; width: 85px;">
-        <v-row no-gutters align-content="start" justify="start">
-        <v-col cols=8>
-          {{header.text}}
-        </v-col>  
-        <v-col cols=4>
-        <v-img
-          height="25"
-          x-small
-          elevation="0"
-        >
-          <v-icon v-if="searchValue != ''" color=blue x-small>mdi-magnify</v-icon>
-        </v-img>
-        </v-col></v-row>
-      </div>
-    </template>    
+        
+          <template #item-alert.annotations.summary="item">
+            <div style="max-height: 65px;" v-html="getSummaryHeader(item.alert.labels.alertname, item.alert.annotations.summary)">
+            </div>
 
-    <template #header-alert.annotations.summary="header">
-      <div style="margin-top: 8px; width: 85px;">
-        <v-row no-gutters align-content="start" justify="start">
-        <v-col cols=8>
-          {{header.text}}
-        </v-col>  
-        <v-col cols=4>
-        <v-img
-          height="25"
-          x-small
-          elevation="0"
-        >
-          <v-icon v-if="searchValue != ''" color=blue x-small>mdi-magnify</v-icon>
-        </v-img>
-        </v-col></v-row>
-      </div>
-    </template>   
-
-    <template #header-alert.labels.team="header">
-      <div style="margin-top: 8px; width: 60px;">
-        <v-row no-gutters align-content="start" justify="start">
-        <v-col cols=8>
-          {{header.text}}
-        </v-col>  
-        <v-col cols=4>
-        <v-img
-          height="25"
-          x-small
-          elevation="0"
-        >
-          <v-icon v-if="searchValue != ''" color=blue x-small>mdi-magnify</v-icon>
-        </v-img>
-        </v-col></v-row>
-      </div>
-    </template>   
-
-
-    <template #item-icon="item">
-      <table><tr><td>
-      <v-icon color=red class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'NEW'">mdi-bell-ring</v-icon> 
-      <v-icon color=grey class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'SILENCED'">mdi-sleep</v-icon> 
-      <v-icon color=orange class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'ACKED'">mdi-account-check</v-icon> 
-      <v-icon color=green class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon> 
-      </td><td>
-      <v-icon color=red class="pb-0" v-if="item.flapping == true">mdi-swap-vertical</v-icon> 
-      </td></tr></table>
-    </template>
-
-    <template #item-alert.labels.gm_instance="item">
-      <div v-if="item.alert.labels.gm_instance != null && item.alert.annotations.gm_instance_from_am == null">
-        {{item.alert.labels.gm_instance}}
-      </div>
-      <div v-if="item.alert.labels.gm_instance != null && item.alert.annotations.gm_instance_from_am == 'true'" 
-          style="padding-left: 4px; border-left: 3px solid orange">
-        {{item.alert.labels.gm_instance}}
-      </div>
-      <div v-if="item.alert.labels.gm_instance == null" 
-          style="padding-left: 4px; border-left: 3px solid red">
-        legacy
-      </div>
-    </template>
-
-
-    <template #item-actions="item">
-        <v-menu offset-y>
-          <template v-slot:activator="{ props }">
-            <v-icon small v-bind="props">mdi-dots-vertical</v-icon>
           </template>
-          <v-card><v-list>
-            <v-list-item v-if="item.status == 'NEW'" >
-                  <v-btn 
-                    value="ACK"
-                    small
-                    style="width: 75px;"
-                    color="green" 
-                    elevation=0
-                    @click="mark(item, 'ACKED')"
-                  >ACK</v-btn>
-                </v-list-item>
-                <v-list-item v-if="item.status == 'ACKED'">
-                  <v-btn  
-                    value="UNACK"
-                    small
-                    style="width: 75px;color:white !important"
-                    color="blue-lighten-2"
-                    elevation=0
-                    @click="mark(item, 'NEW')"
-                  >UNACK</v-btn>
-                </v-list-item>
-                <v-list-item v-if="item.status == 'RESOLVED'"> 
-                  <v-btn  
-                    value="DELETE"
-                    small
-                    style="width: 75px;"
-                    color="red"
-                    elevation=0
-                    @click="deleteRecord(item.id);"
-                  >DELETE</v-btn>
-                </v-list-item>
-                <v-list-item v-if="item.status != 'RESOLVED'" >
-                  <v-btn 
-                    value="SILENCE"
-                    small
-                    style="width: 75px;"
-                    color="red"
-                    elevation=0
-                    @click="newSilence(item);silence.dialog = true;"
-                  >SILENCE</v-btn>
-                </v-list-item>
-                <v-list-item v-if="item.status != 'RESOLVED'" >
-                  <v-btn 
-                    value="JIRA"
-                    small
-                    style="width: 75px;"
-                    color="blue"
-                    elevation=0
-                    @click="newJira(item);jira.dialog = true;"
-                  >JIRA</v-btn>
-                </v-list-item>
-                <v-list-item>
-                  <v-btn
-                    value="NOTE"
-                    small
-                    style="width: 75px;"
-                    color="yellow"
-                    elevation=0
-                    @click="note.dialog = true;note.id = item.id;note.message='';note.prefix='Note';note.caption='Add a note to the record';"
-                  >NOTE</v-btn>
-                </v-list-item>
-                
-              </v-list>
-            </v-card>
-        </v-menu>
-      
-    </template>
 
-
-
-  </EasyDataTable>
-
-
-<!--
-  <v-data-table
-    density="compact"
-    :headers="headers"
-    :items="info"
-    v-model:expanded="expanded"
-    expand-on-click
-    item-value="id"
-    :sort-by="[{ key: 'alert.startsAt', order: 'desc' }, { key: 'alert.labels.alertname', order: 'asc' }]"
-    multi-sort
-    :loading="loading"
-    :search="search"
-    :item-class="function(item) { 
-      if (item.status == 'RESOLVED') return 'green lighten-5';
-    }"
-  >
-
-
-
-    <template v-slot:expanded-row="{ columns, item }">
-      <tr>
-        <td style="padding: 5px" :colspan="columns.length">
-          <div>{{item.alert.annotations.summary}}</div>
-        </td>
-      </tr>
-    </template>
-
-    <template v-slot:[`item.alert.startsAt`]="{ item }">
-      <div style="width: 100px;">
-        <v-chip small :color="getLastOccColor(item)">{{ item.duration }}</v-chip>
-      </div>
-    </template>
-
-    <template v-slot:[`item.alert.labels.severity`]="{ item }">
-      <v-chip small :color="getSeverityColor(item)">{{ item.alert.labels.severity }}</v-chip>
-    </template>
-
-    <template v-slot:[`item.alert.labels.system`]="{ item }">
-      <div v-if="item.alert.labels.system != null">
-        {{ item.alert.labels.system }}
-      </div>
-      <v-chip color="red" v-if="(item.alert.labels.system == null) && (item.alert.labels.env != null)">
-        {{ item.alert.labels.system }}
-      </v-chip>
-    </template>    
-
-    <template v-slot:[`item.icon`]="{ item }">
-      <v-icon color=red class="pb-0" v-if="item.status == 'NEW'">mdi-new-box</v-icon> 
-      <v-icon tooltip="Silenced" color=grey class="pb-0" v-if="item.status == 'SILENCED'">mdi-sleep</v-icon> 
-      <v-icon tooltip="Acked" color=orange class="pb-0" v-if="item.status == 'ACKED'">mdi-account-check</v-icon> 
-      <v-icon color=green class="pb-0" v-if="item.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon> 
-    </template>
-
-  
-    <template v-slot:[`item.message`]="{ item }">
-      <div 
-          style="cursor: pointer; max-height: 65px;">
-          {{item.alert.labels.alertname}}: {{getSummaryHeader(item.alert.annotations.summary)}} x
-      </div>
-    </template>
-
-    <template v-slot:[`item.info`]="{ item }">
-      <div @click.stop="" style="width: 20px;">
-        <v-icon color=blue @click="alertDetails.dialog=true;alertDetails.item=item;">mdi-information</v-icon>
-      </div>
-    </template>
-
-    <template v-slot:[`item.actions`]="{ item }">
-      <v-container style="cell-padding: 0;width: 20px;">
-        <v-menu offset-y>
-          <template v-slot:activator="{ props }">
-            <v-icon x-small v-bind="props">mdi-dots-vertical</v-icon>
+          <template #expand="item">
+            <div style="border-left: 3px solid #CCC; padding-left: 5px; margin-left: 20px; font-size: 12px; font-weight: bold">{{item.alert.labels.alertname}}: </div>
+            <div style="border-left: 3px solid #CCC; padding-left: 5px; margin-left: 20px; font-size: 12px; vertical-align: top; white-space: pre-wrap;" v-html="item.alert.annotations.summary"></div>
+              
           </template>
-          <v-card><v-list>
-            <v-list-item v-if="item.status == 'NEW'" >
-                  <v-btn 
-                    value="ACK"
-                    small
-                    style="width: 75px;"
-                    color="green" 
-                    elevation=0
-                    @click="mark(item, 'ACKED')"
-                  >ACK</v-btn>
-                </v-list-item>
-                <v-list-item v-if="item.status == 'ACKED'">
-                  <v-btn  
-                    value="UNACK"
-                    small
-                    style="width: 75px;color:white !important"
-                    color="blue-lighten-2"
-                    elevation=0
-                    @click="mark(item, 'NEW')"
-                  >UNACK</v-btn>
-                </v-list-item>
-                <v-list-item v-if="item.status == 'RESOLVED'"> 
-                  <v-btn  
-                    value="DELETE"
-                    small
-                    style="width: 75px;"
-                    color="red"
-                    elevation=0
-                    @click="deleteRecord(item.key);"
-                  >DELETE</v-btn>
-                </v-list-item>
-                <v-list-item v-if="item.status != 'RESOLVED'" >
-                  <v-btn 
-                    value="SILENCE"
-                    small
-                    style="width: 75px;"
-                    color="red"
-                    elevation=0
-                    @click="newSilence(item);silence.dialog = true;"
-                  >SILENCE</v-btn>
-                </v-list-item>
-                <v-list-item v-if="item.status != 'RESOLVED'" >
-                  <v-btn 
-                    value="JIRA"
-                    small
-                    style="width: 75px;"
-                    color="blue"
-                    elevation=0
-                    @click="newJira(item);jira.dialog = true;"
-                  >JIRA</v-btn>
-                </v-list-item>
-                <v-list-item>
-                  <v-btn
-                    value="NOTE"
-                    small
-                    style="width: 75px;"
-                    color="yellow"
-                    elevation=0
-                    @click="note.dialog = true;note.id = item.key;note.message='';note.prefix='Note';note.caption='Add a note to the record';"
-                  >NOTE</v-btn>
-                </v-list-item>
-                
-                </v-list>
+
+
+          <template #item-alert.startsAt="item">
+            <div ><v-chip size="small" :color="getLastOccColor(item)">{{ item.duration }}</v-chip></div>
+          </template>
+
+          <template #item-alert.labels.severity="item">
+            <div ><v-chip size="small" :color="getSeverityColor(item)">{{ item.alert.labels.severity }}</v-chip></div>
+          </template>
+
+          <template #item-alert.labels.alertname="item">
+            <div v-if="item.alert.labels.service != null" style="padding-left: 4px; border-left: 3px solid orange"> 
+              {{ item.alert.labels.service }}
+            </div>
+            <div v-if="item.alert.labels.service == null">
+              {{ item.alert.labels.alertname }}
+            </div>
+          </template>
+
+          <template #item-alert.labels.team="item">
+            <div v-if="item.alert.labels.team != null">
+              {{ item.alert.labels.team }}
+            </div>
+            <div size="small" color="red" v-if="(item.alert.labels.team == null)" style="padding-left: 4px; border-left: 3px solid red">
+              TEAM MISSING
+            </div>
+          </template>    
+
+
+          <template #header-alert.labels.instance="header">
+            <div style="margin-top: 8px; width: 75px;">
+              <v-row no-gutters align-content="start" justify="start">
+              <v-col cols=8>
+                {{header.text}}
+              </v-col>  
+              <v-col cols=4>
+              <v-img
+                height="25"
+                x-small
+                elevation="0"
+              >
+                <v-icon v-if="searchValue != ''" color=blue x-small>mdi-magnify</v-icon>
+              </v-img>
+              </v-col></v-row>
+            </div>
+          </template>
+          
+          <template #header-alert.labels.alertname="header">
+            <div style="margin-top: 8px; width: 85px;">
+              <v-row no-gutters align-content="start" justify="start">
+              <v-col cols=8>
+                {{header.text}}
+              </v-col>  
+              <v-col cols=4>
+              <v-img
+                height="25"
+                x-small
+                elevation="0"
+              >
+                <v-icon v-if="searchValue != ''" color=blue x-small>mdi-magnify</v-icon>
+              </v-img>
+              </v-col></v-row>
+            </div>
+          </template>    
+
+          <template #header-alert.annotations.summary="header">
+            <div style="margin-top: 8px; width: 85px;">
+              <v-row no-gutters align-content="start" justify="start">
+              <v-col cols=8>
+                {{header.text}}
+              </v-col>  
+              <v-col cols=4>
+              <v-img
+                height="25"
+                x-small
+                elevation="0"
+              >
+                <v-icon v-if="searchValue != ''" color=blue x-small>mdi-magnify</v-icon>
+              </v-img>
+              </v-col></v-row>
+            </div>
+          </template>   
+
+          <template #header-alert.labels.team="header">
+            <div style="margin-top: 8px; width: 60px;">
+              <v-row no-gutters align-content="start" justify="start">
+              <v-col cols=8>
+                {{header.text}}
+              </v-col>  
+              <v-col cols=4>
+              <v-img
+                height="25"
+                x-small
+                elevation="0"
+              >
+                <v-icon v-if="searchValue != ''" color=blue x-small>mdi-magnify</v-icon>
+              </v-img>
+              </v-col></v-row>
+            </div>
+          </template>   
+
+
+          <template #item-icon="item">
+            <table><tr><td>
+            <v-icon color=red class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'NEW'">mdi-bell-ring</v-icon> 
+            <v-icon color=grey class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'SILENCED'">mdi-sleep</v-icon> 
+            <v-icon color=orange class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'ACKED'">mdi-account-check</v-icon> 
+            <v-icon color=green class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon> 
+            </td><td>
+            <v-icon color=red class="pb-0" v-if="item.flapping == true">mdi-swap-vertical</v-icon> 
+            </td></tr></table>
+          </template>
+
+          <template #item-alert.labels.gm_instance="item">
+            <div v-if="item.alert.labels.gm_instance != null && item.alert.annotations.gm_instance_from_am == null">
+              {{item.alert.labels.gm_instance}}
+            </div>
+            <div v-if="item.alert.labels.gm_instance != null && item.alert.annotations.gm_instance_from_am == 'true'" 
+                style="padding-left: 4px; border-left: 3px solid orange">
+              {{item.alert.labels.gm_instance}}
+            </div>
+            <div v-if="item.alert.labels.gm_instance == null" 
+                style="padding-left: 4px; border-left: 3px solid red">
+              legacy
+            </div>
+          </template>
+
+
+          <template #item-actions="item">
+            <v-menu offset-y>
+              <template v-slot:activator="{ props }">
+                <v-icon small v-bind="props">mdi-dots-vertical</v-icon>
+              </template>
+              <v-card><v-list>
+                <v-list-item v-if="item.status == 'NEW'" >
+                      <v-btn 
+                        value="ACK"
+                        small
+                        style="width: 75px;"
+                        color="green" 
+                        elevation=0
+                        @click="mark(item, 'ACKED')"
+                      >ACK</v-btn>
+                    </v-list-item>
+                    <v-list-item v-if="item.status == 'ACKED'">
+                      <v-btn  
+                        value="UNACK"
+                        small
+                        style="width: 75px;color:white !important"
+                        color="blue-lighten-2"
+                        elevation=0
+                        @click="mark(item, 'NEW')"
+                      >UNACK</v-btn>
+                    </v-list-item>
+                    <v-list-item v-if="item.status == 'RESOLVED'"> 
+                      <v-btn  
+                        value="DELETE"
+                          small
+                          style="width: 75px;"
+                          color="red"
+                          elevation=0
+                          @click="deleteRecord(item.id);"
+                        >DELETE</v-btn>
+                      </v-list-item>
+                      <v-list-item v-if="item.status != 'RESOLVED'" >
+                        <v-btn 
+                          value="SILENCE"
+                          small
+                          style="width: 75px;"
+                          color="red"
+                          elevation=0
+                          @click="newSilence(item);silence.dialog = true;"
+                        >SILENCE</v-btn>
+                      </v-list-item>
+                      <v-list-item v-if="item.status != 'RESOLVED'" >
+                        <v-btn 
+                          value="JIRA"
+                          small
+                          style="width: 75px;"
+                          color="blue"
+                          elevation=0
+                          @click="newJira(item);jira.dialog = true;"
+                        >JIRA</v-btn>
+                      </v-list-item>
+                      <v-list-item>
+                        <v-btn
+                          value="NOTE"
+                          small
+                          style="width: 75px;"
+                          color="yellow"
+                          elevation=0
+                          @click="note.dialog = true;note.id = item.id;note.message='';note.prefix='Note';note.caption='Add a note to the record';"
+                        >NOTE</v-btn>
+                      </v-list-item>
+                      
+                  </v-list>
                 </v-card>
-        </v-menu>
-      </v-container>
-    </template>
+            </v-menu>
+          </template>
 
+        </EasyDataTable>
+      </v-expansion-panel-text>
+    </v-expansion-panel>
 
-  </v-data-table>
--->
+  </v-expansion-panels>
 
-  
 </template>
 
 
