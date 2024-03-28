@@ -1,14 +1,17 @@
 import axios from "axios";
 import { useRouter, useRoute } from 'vue-router';
+import { ref } from 'vue';
 
 export default {
   
   setup() {
+    const dataTable = ref([]);
     const router = useRouter();
     const query = useRoute().query;
     return {
       router,
-      query
+      query,
+      dataTable
     }
   },
   name: "ResultList",
@@ -24,7 +27,9 @@ export default {
   emits: ['alerts','alert','status','token','user','role','alertManagerStatus'],
   data() {
     return {
+      rowsPerPage: null,
       panel: [],
+      expandMode: null,
       currentJira: {
         id: null,
         summary: null,
@@ -182,6 +187,11 @@ export default {
     };
   },
   watch: {
+    expandMode: {
+      handler() {
+        this.setPanel(true);
+      }
+    },
     searchValue: {
       handler() {
         if (this.searchValue == null) { this.searchValue = ''; }
@@ -247,10 +257,10 @@ export default {
   mounted() {
     window.console.log("**** STARTING ****");
     this.login();
-    
 
     setTimeout(() => {
-      console.log("*** ALERTS TIMEOUT FIRED ***")
+      console.log("*** ALERTS TIMEOUT FIRED ***");
+      console.log(this.dataTable);
       console.log("statuses:"+this.query.statuses);
       console.log("autoRefresh:"+this.query.autoRefresh);
       this.autoRefresh = true;
@@ -280,6 +290,18 @@ export default {
         this.autoRefresh = true;
       } else {
         this.autoRefresh = false;
+      }
+
+      if (this.query.expandMode == null) {
+        this.expandMode = 'first';
+      } else {
+        this.expandMode = this.query.expandMode;
+      }
+
+      if (this.query.rowsPerPage == null) {
+        this.rowsPerPage = 15;
+      } else {
+        this.rowsPerPage = this.query.rowsPerPage;
       }
       
       this.poll();
@@ -515,6 +537,43 @@ export default {
       this.copyDialog.text = '';
       this.copyDialog.title = '';
     },
+    setQueryString() {
+      console.log("updating query string");
+      this.router.push({
+        query: {
+          severity: this.searchSeverity,
+          statuses: this.statuses,
+          gmInstances: this.searchGmInstance,
+          groupField: this.groupField,
+          autoRefresh: this.autoRefresh,
+          expandMode: this.expandMode,
+          rowsPerPage: this.rowsPerPage
+        }, replace: true
+      });
+    },
+    updateDataTables() {
+      for (var i = 0; i < this.dataTable.length; i++) {
+        
+        this.dataTable[i].updateRowsPerPageActiveOption(this.rowsPerPage);
+      }
+    },
+    setPanel(force) {
+      var keys = Object.keys(this.info);
+      if (keys[0] == 'ALL') {
+        this.expandMode = 'first';
+      } 
+      if (this.panel == "" || force) {
+        var keys = Object.keys(this.info);
+        if (this.expandMode == "first") {
+          this.panel = [keys[0]];
+        } else if (this.expandMode == "all") {
+          this.panel = keys;
+        } else if (this.expandMode == "none" && force) {
+          this.panel = [];
+        }
+      }
+      this.setQueryString();
+    },
     fetchData(asExport) {
       this.expanded = []
       this.loading = true;
@@ -577,23 +636,8 @@ export default {
             })
             
             
-            this.router.push({
-              query: {
-                severity: this.searchSeverity,
-                statuses: this.statuses,
-                gmInstances: this.searchGmInstance,
-                groupField: this.groupField,
-                autoRefresh: this.autoRefresh
-              }, replace: true
-            });
-          
-
-            if (this.panel == "") {
-              var keys = Object.keys(this.info);
-              
-              this.panel = [keys[0]];
-              console.log(this.panel);
-            }
+            this.setQueryString();
+            this.setPanel(false);
           
             this.loading = false;
           })

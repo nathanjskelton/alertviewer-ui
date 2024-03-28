@@ -10,11 +10,65 @@
     <v-icon size="x-large" v-if="showDrawer==true" @click="toggleDrawer();">mdi-menu-left</v-icon>
     <div style="font-synthesis-small-caps: auto; font-size: x-small; color: purple">FILTERS</div>
 
+    <div style="width: 65px;margin-top: 15px;margin-left: 200px">
+      <v-select density="compact" variant="underlined" :single-line=true v-model="this.rowsPerPage" label="Rows per Page"
+          :items="[1,5,15,25,50,100]" @update:modelValue="this.setQueryString(); this.updateDataTables();">
+      </v-select>
+    </div>
+    <div style="width: 50px;margin-top: 2px;margin-left: 6px;">rows</div>
     <v-spacer></v-spacer>
     
+    
 
-    <div class="mt-6 mr-9" >
-      <v-switch v-model="autoRefresh" label="auto-refresh" density="compact"></v-switch>
+    <div v-if="Object.keys(this.info)[0] != 'ALL'">
+    <v-slide-group mandatory="force" v-model="expandMode">
+      <v-slide-group-item value="none"
+        v-slot="{ isSelected, toggle }"
+      >
+        <v-btn
+          rounded="0"
+          density=compact
+          :color="isSelected ? 'purple' : '#999'"
+          :style="isSelected ? 'border-left: 4px solid purple; padding-left: 1px;' : 'padding-left: 5px'"
+          class="ma-1 mt-2"
+          @click="toggle"
+        >
+          Expand None
+        </v-btn>
+      </v-slide-group-item>
+      <v-slide-group-item value="first"
+        v-slot="{ isSelected, toggle }"
+      >
+        <v-btn
+          rounded="0"
+          density=compact
+          :color="isSelected ? 'purple' : '#999'"
+          :style="isSelected ? 'border-left: 4px solid purple; padding-left: 1px;' : 'padding-left: 5px'"
+          class="ma-1 mt-2"
+          @click="toggle"
+        >
+          Expand First
+        </v-btn>
+      </v-slide-group-item>
+      <v-slide-group-item value="all"
+        v-slot="{ isSelected, toggle }"
+      >
+        <v-btn
+          rounded="0"
+          density=compact
+          :color="isSelected ? 'purple' : '#999'"
+          :style="isSelected ? 'border-left: 4px solid purple; padding-left: 1px;' : 'padding-left: 5px'"
+          class="ma-1 mt-2"
+          @click="toggle"
+        >
+          Expand All
+        </v-btn>
+      </v-slide-group-item>
+    </v-slide-group>
+  </div>
+
+    <div class="mt-6 mr-9 ml-15" >
+      <v-switch v-model="autoRefresh" label="auto-refresh" density="compact" @click="this.setQueryString()"></v-switch>
     </div>
 
     <v-btn class="mt-0" tile @click="fetchData()" target="_blank" text :color="refreshStyle">
@@ -297,11 +351,11 @@
       single-line
       hide-details
     ></v-text-field>    
-  </v-toolbar>
+  </v-toolbar> 
 
 
   <v-expansion-panels v-model="panel" multiple>
-    <v-expansion-panel v-for="list, key in info" :value="key">
+    <v-expansion-panel v-for="group, key in info" :value="key">
       <v-expansion-panel-title style="min-height: 18px; height: 18px; border-bottom: 1px solid #aaa; background-color: #eee;">
         <template v-slot:default="{ expanded }">
 
@@ -309,21 +363,26 @@
               All Records (No Group Filter)
             </div>
             <div v-if="key != 'ALL'">
-            {{key}}
+              {{key}}
             </div>
+            <div style="padding-left: 40px;"><v-chip size="small" color="red-lighten-1">{{group.firing}}/{{group.total}} alerts firing</v-chip></div>
 
         </template>
       </v-expansion-panel-title>
       <v-expansion-panel-text >
         <EasyDataTable
+          ref="dataTable"
           :headers="headers"
-          :items="list"
+          :items="group.list"
           :loading="loading"
           :sort-by="sortBy"
           :sort-type="sortType"
           :search-value="searchValue"
+          :rows-items=[1,5,15,25,50,100]
           :search-field="searchField"
-          table-min-height="10"
+          :table-min-height=10
+          :hide-footer="group.list.length <= this.rowsPerPage"
+          :rows-per-page="this.rowsPerPage"
           table-class-name="customize-table"
         
         >
