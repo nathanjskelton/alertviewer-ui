@@ -76,12 +76,14 @@
       <v-icon>mdi-database-refresh</v-icon>
     </v-btn>
 
+    <!--
     <v-btn class="mt-0" tile @click.stop="fetchData(true)" target="_blank" text>
       <div >
         Export
         <v-icon>mdi-application-export</v-icon>
       </div>
     </v-btn>
+    -->
   </v-app-bar>
 
     
@@ -89,7 +91,9 @@
 
   <v-navigation-drawer v-model="showDrawer" app color="purple-lighten-5">
     <div class="px-2 mt-0">
-      <v-btn width=250 height=50 @click="searchValue='';searchGmInstance=[];panel=[];groupField=null;searchSeverity=[];gmInstances =[];statuses=[]" target="_blank" text style="background-color:rgba(0, 0, 0, 0.04);">
+      <v-btn width=250 height=50 @click="searchAlertName=null;searchTeam=null;searchInstance=null;searchSummary=null;
+          searchGmInstance=[];panel=[];groupField=null;searchSeverity=[];
+          gmInstances =[];statuses=['NEW','FLAPPING']" target="_blank" text style="background-color:rgba(0, 0, 0, 0.04);">
         <span class="mr-2">Clear</span>
         <v-icon>mdi-notification-clear-all</v-icon>
       </v-btn>
@@ -102,13 +106,7 @@
     </div>
     
     
-    <div class="pa-2 mt-0 mb-0">
-        <v-select style="max-height: 50px" multiple :items="logTypes" v-model="searchSeverity" label="Severity"></v-select>
-    </div>
 
-    <div class="pa-2 mt-0 mb-0">
-      <v-select style="max-height: 50px" multiple :items="gmInstances" v-model="searchGmInstance" label="GM Instance"></v-select>
-    </div>
 
     <div class="pa-2" >
       <v-card class="px-2" style="background-color:rgba(0, 0, 0, 0.04);" >
@@ -341,6 +339,7 @@
     </v-card>
   </v-dialog>
   
+  <!--
   <v-toolbar dense color="purple-lighten-5" height="50" elevation=3>      
     <v-text-field
       clearable
@@ -352,7 +351,7 @@
       hide-details
     ></v-text-field>    
   </v-toolbar> 
-
+  -->
 
   <v-expansion-panels v-model="panel" multiple>
     <v-expansion-panel v-for="group, key in info" :value="key">
@@ -377,16 +376,151 @@
           :loading="loading"
           :sort-by="sortBy"
           :sort-type="sortType"
-          :search-value="searchValue"
           :rows-items=[1,5,15,25,50,100]
-          :search-field="searchField"
           :table-min-height=10
           :hide-footer="group.list.length <= this.rowsPerPage"
           :rows-per-page="this.rowsPerPage"
+          :filter-options="filterOptions"
           table-class-name="customize-table"
         
         >
+
+          <!-- HEADERS -->
+
+          <template #header-alert.labels.severity="header">
+            <v-dialog offset=-40 max-width="300" location-strategy="connected">
         
+              <template v-slot:default="{ isActive }">
+            
+                  <v-select autofocus=true @keyup.enter="isActive.value=false" menu-icon="mdi-arrow-left-bold-circle" 
+                      clearable=true @update:menu="isActive.value=false"  bg-color="white" 
+                      label="Severity" menu density=compact multiple :items="logTypes" v-model="searchSeverity" @update:modelValue="this.setQueryString();">
+                  </v-select>
+          
+              </template>
+              <template v-slot:activator="{ props: activatorProps }">
+                <v-icon color="green" v-if="searchSeverity != null && searchSeverity.length > 0" 
+                    v-bind="activatorProps">mdi-filter-check</v-icon>                
+                <v-icon color="#999" v-if="searchSeverity == null || searchSeverity.length == 0" v-bind="activatorProps">mdi-filter-off</v-icon>
+              </template>
+            </v-dialog>
+            
+            <div>Severity</div>
+          </template>
+
+          <template #header-alert.labels.gm_instance="header">
+            <v-dialog offset=-40 max-width="300" location-strategy="connected">
+        
+              <template v-slot:default="{ isActive }">
+            
+                  <v-select autofocus=true @keyup.enter="isActive.value=false" menu-icon="mdi-arrow-left-bold-circle" 
+                      clearable=true @update:menu="isActive.value=false"  bg-color="white" 
+                      label="GM" menu density=compact multiple :items="gmInstances" v-model="searchGmInstance" @update:modelValue="this.setQueryString();">
+                  </v-select>
+          
+              </template>
+              <template v-slot:activator="{ props: activatorProps }">
+                <v-icon color="green" v-if="searchGmInstance != null && searchGmInstance.length > 0" 
+                    v-bind="activatorProps">mdi-filter-check</v-icon>              
+                <v-icon color="#999" v-if="searchGmInstance == null || searchGmInstance.length == 0" v-bind="activatorProps">mdi-filter-off</v-icon>
+              </template>
+            </v-dialog>
+            
+            <div>GM</div>
+          </template>
+
+          <template #header-alert.labels.alertname="header">
+            <v-dialog offset=-40 max-width="300" location-strategy="connected">
+              <template v-slot:default="{ isActive }">
+                <v-text-field label="AlertName" @keyup.enter="isActive.value=false" clearable=true 
+                    autofocus=true density=compact bg-color="white"  v-model="searchAlertName" @update:modelValue="this.setQueryString();">
+                  <template v-slot:append-inner>
+                    <v-icon @click="isActive.value=false">mdi-arrow-right-bold-circle</v-icon>
+                  </template>
+                </v-text-field>
+              </template>
+              <template v-slot:activator="{ props: activatorProps }">
+                <v-icon color="green" v-if="searchAlertName != null && searchAlertName.length > 0 && !searchAlertName.startsWith('!')" 
+                    v-bind="activatorProps">mdi-filter-check</v-icon>
+                <v-icon color="red" v-if="searchAlertName != null && searchAlertName.length > 0 && searchAlertName.startsWith('!')" 
+                    v-bind="activatorProps">mdi-filter-remove</v-icon>                    
+                <v-icon color="#999" v-if="searchAlertName == null || searchAlertName.length == 0" v-bind="activatorProps">mdi-filter-off</v-icon>
+              </template>
+            </v-dialog>
+            
+            <div>AlertName</div>
+          </template>
+
+          <template #header-alert.labels.instance="header">
+            <v-dialog offset=-40 max-width="300" location-strategy="connected">
+              <template v-slot:default="{ isActive }">
+                <v-text-field label="Instance" @keyup.enter="isActive.value=false" clearable=true 
+                    autofocus=true density=compact bg-color="white"  v-model="searchInstance" @update:modelValue="this.setQueryString();">
+                  <template v-slot:append-inner>
+                    <v-icon @click="isActive.value=false">mdi-arrow-right-bold-circle</v-icon>
+                  </template>
+                </v-text-field>
+              </template>
+              <template v-slot:activator="{ props: activatorProps }">
+                <v-icon color="green" v-if="searchInstance != null && searchInstance.length > 0 && !searchInstance.startsWith('!')" 
+                    v-bind="activatorProps">mdi-filter-check</v-icon>
+                <v-icon color="red" v-if="searchInstance != null && searchInstance.length > 0 && searchInstance.startsWith('!')" 
+                    v-bind="activatorProps">mdi-filter-remove</v-icon>                    
+                <v-icon color="#999" v-if="searchInstance == null || searchInstance.length == 0" v-bind="activatorProps">mdi-filter-off</v-icon>
+              </template>
+            </v-dialog>
+            
+            <div>Instance</div>
+          </template>
+
+          <template #header-alert.labels.team="header">
+            <v-dialog offset=-40 max-width="300" location-strategy="connected">
+              <template v-slot:default="{ isActive }">
+                <v-text-field label="Team" @keyup.enter="isActive.value=false" clearable=true 
+                    autofocus=true density=compact bg-color="white"  v-model="searchTeam" @update:modelValue="this.setQueryString();">
+                  <template v-slot:append-inner>
+                    <v-icon @click="isActive.value=false">mdi-arrow-right-bold-circle</v-icon>
+                  </template>
+                </v-text-field>
+              </template>
+              <template v-slot:activator="{ props: activatorProps }">
+                <v-icon color="green" v-if="searchTeam != null && searchTeam.length > 0 && !searchTeam.startsWith('!')" 
+                    v-bind="activatorProps">mdi-filter-check</v-icon>
+                <v-icon color="red" v-if="searchTeam != null && searchTeam.length > 0 && searchTeam.startsWith('!')" 
+                    v-bind="activatorProps">mdi-filter-remove</v-icon>                    
+                <v-icon color="#999" v-if="searchTeam == null || searchTeam.length == 0" v-bind="activatorProps">mdi-filter-off</v-icon>
+              </template>
+            </v-dialog>
+            
+            <div>Team</div>
+          </template>
+
+          <template #header-alert.annotations.summary="header">
+            <v-dialog offset=-40 max-width="300" location-strategy="connected">
+              <template v-slot:default="{ isActive }">
+                <v-text-field label="Summary" @keyup.enter="isActive.value=false" clearable=true 
+                    autofocus=true density=compact bg-color="white"  v-model="searchSummary" @update:modelValue="this.setQueryString();">
+                  <template v-slot:append-inner>
+                    <v-icon @click="isActive.value=false">mdi-arrow-right-bold-circle</v-icon>
+                  </template>
+                </v-text-field>
+              </template>
+              <template v-slot:activator="{ props: activatorProps }">
+                <v-icon color="green" v-if="searchSummary != null && searchSummary.length > 0 && !searchSummary.startsWith('!')" 
+                    v-bind="activatorProps">mdi-filter-check</v-icon>
+                <v-icon color="red" v-if="searchSummary != null && searchSummary.length > 0 && searchSummary.startsWith('!')" 
+                    v-bind="activatorProps">mdi-filter-remove</v-icon>                    
+                <v-icon color="#999" v-if="searchSummary == null || searchSummary.length == 0" v-bind="activatorProps">mdi-filter-off</v-icon>
+              </template>
+            </v-dialog>
+            
+            <div>Summary</div>
+          </template>
+
+          
+
+          <!-- ITEMS -->
+
           <template #item-alert.annotations.summary="item">
             <div style="max-height: 65px;" v-html="getSummaryHeader(item.alert.labels.alertname, item.alert.annotations.summary)">
             </div>
@@ -426,7 +560,7 @@
             </div>
           </template>    
 
-
+<!--
           <template #header-alert.labels.instance="header">
             <div style="margin-top: 8px; width: 75px;">
               <v-row no-gutters align-content="start" justify="start">
@@ -445,6 +579,7 @@
             </div>
           </template>
           
+          
           <template #header-alert.labels.alertname="header">
             <div style="margin-top: 8px; width: 85px;">
               <v-row no-gutters align-content="start" justify="start">
@@ -462,7 +597,7 @@
               </v-col></v-row>
             </div>
           </template>    
-
+        
           <template #header-alert.annotations.summary="header">
             <div style="margin-top: 8px; width: 85px;">
               <v-row no-gutters align-content="start" justify="start">
@@ -498,7 +633,7 @@
               </v-col></v-row>
             </div>
           </template>   
-
+        -->
 
           <template #item-icon="item">
             <table><tr><td>

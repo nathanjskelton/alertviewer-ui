@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useRouter, useRoute } from 'vue-router';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 export default {
   
@@ -84,8 +84,10 @@ export default {
       selected: [],
       searchSeverity: [],
       searchGmInstance: [],
-      searchValue: "",
-      searchField: ["alert.labels.instance","alert.labels.team","alert.labels.alertname","alert.annotations.summary"],
+      searchAlertName: null,
+      searchInstance: null,
+      searchTeam: null,
+      searchSummary: null,
       showDrawer: true,
       refreshStyle: "",
       dialog: false,
@@ -111,6 +113,62 @@ export default {
       deleteDisabled: true,
       name: "Alerts",
       expanded: [],
+      filterMenu: {
+        alertname: false,
+        instance: false,
+        team: false,
+        summary: false,
+        severity: false,
+        gm: false,
+      },
+      filterOptions: computed(() => {
+        const filterOptionsArray = []
+        filterOptionsArray.push({
+          field: "alert.labels.alertname",
+          criteria: this.searchAlertName,
+          comparison: (value, criteria) =>
+            criteria == null ||
+            (value != null &&
+            criteria != null &&
+            typeof value === "string" &&
+            ((!criteria.startsWith("!") && value.includes(criteria)) || 
+                (criteria.startsWith("!") && !value.includes(criteria.substring(1)))))
+        })
+        filterOptionsArray.push({
+          field: "alert.labels.instance",
+          criteria: this.searchInstance,
+          comparison: (value, criteria) =>
+            criteria == null ||
+            (value != null &&
+            criteria != null &&
+            typeof value === "string" &&
+            ((!criteria.startsWith("!") && value.includes(criteria)) || 
+                (criteria.startsWith("!") && !value.includes(criteria.substring(1)))))
+        })
+        filterOptionsArray.push({
+          field: "alert.labels.team",
+          criteria: this.searchTeam,
+          comparison: (value, criteria) =>
+            criteria == null ||
+            (value != null &&
+            criteria != null &&
+            typeof value === "string" &&
+            ((!criteria.startsWith("!") && value.includes(criteria)) || 
+                (criteria.startsWith("!") && !value.includes(criteria.substring(1)))))
+        })
+        filterOptionsArray.push({
+          field: "alert.annotations.summary",
+          criteria: this.searchSummary,
+          comparison: (value, criteria) =>
+            criteria == null ||
+            (value != null &&
+            criteria != null &&
+            typeof value === "string" &&
+            ((!criteria.startsWith("!") && value.includes(criteria)) || 
+                (criteria.startsWith("!") && !value.includes(criteria.substring(1)))))
+        })
+        return filterOptionsArray
+      }),
       headers: [
         {
           text: "",
@@ -192,11 +250,6 @@ export default {
         this.setPanel(true);
       }
     },
-    searchValue: {
-      handler() {
-        if (this.searchValue == null) { this.searchValue = ''; }
-      }
-    },
     cortana_token: {
       handler() {
         console.log("cortana_token set on result list: "+this.cortana_token);
@@ -244,7 +297,7 @@ export default {
           this.refreshStyle = "orange";
         }
       }
-    },    
+    }, 
     dialog: {
       handler() {
         if (this.dialog) {
@@ -264,10 +317,24 @@ export default {
       console.log("statuses:"+this.query.statuses);
       console.log("autoRefresh:"+this.query.autoRefresh);
       this.autoRefresh = true;
+
       if (this.query.severity != null && Array.isArray(this.query.severity)) {
         this.searchSeverity = this.query.severity;
       } else if (this.query.severity) {
         this.searchSeverity = [ this.query.severity ];
+      }
+
+      if (this.query.srchAlert) {
+        this.searchAlertName = this.query.srchAlert;
+      }
+      if (this.query.srchInst) {
+        this.searchInstance = this.query.srchInst;
+      }
+      if (this.query.srchTm) {
+        this.searchTeam = this.query.srchTm;
+      }
+      if (this.query.srchSmy) {
+        this.searchSummary = this.query.srchSmy;
       }
 
       if (this.query.gmInstances != null && Array.isArray(this.query.gmInstances)) {
@@ -325,6 +392,8 @@ export default {
     },
 
     //END TEST
+
+
 
     getSummaryHeader(name, summary) {
         return (""+summary).split('\n')[0] + "";
@@ -542,6 +611,10 @@ export default {
       this.router.push({
         query: {
           severity: this.searchSeverity,
+          srchAlert: this.searchAlertName,
+          srchInst: this.searchInstance,
+          srchSmy: this.searchSummary,
+          srchTm: this.searchTeam,
           statuses: this.statuses,
           gmInstances: this.searchGmInstance,
           groupField: this.groupField,
@@ -596,6 +669,24 @@ export default {
         urlString = urlString + delim + "severity=" + this.searchSeverity;
         delim = "&";
       }
+
+      if (this.searchAlertName != null && this.searchAlertName.length > 0) {
+        urlString = urlString + delim + "srchAlert=" + this.searchAlertName;
+        delim = "&";
+      }
+      if (this.searchInstance != null && this.searchInstance.length > 0) {
+        urlString = urlString + delim + "srchInst=" + this.searchInstance;
+        delim = "&";
+      }
+      if (this.searchTeam != null && this.searchTeam.length > 0) {
+        urlString = urlString + delim + "srchTm=" + this.searchTeam;
+        delim = "&";
+      }
+      if (this.searchSummary != null && this.searchSummary.length > 0) {
+        urlString = urlString + delim + "srchSmy=" + this.searchSummary;
+        delim = "&";
+      }
+
 
       if (this.searchGmInstance != null && this.searchGmInstance.length > 0) {
         urlString = urlString + delim + "gmInstances=" + this.searchGmInstance;
