@@ -21,51 +21,51 @@
     
 
     <div v-if="Object.keys(this.info)[0] != 'ALL'">
-    <v-slide-group mandatory="force" v-model="expandMode">
-      <v-slide-group-item value="none"
-        v-slot="{ isSelected, toggle }"
-      >
-        <v-btn
-          rounded="0"
-          density=compact
-          :color="isSelected ? 'purple' : '#999'"
-          :style="isSelected ? 'border-left: 4px solid purple; padding-left: 1px;' : 'padding-left: 5px'"
-          class="ma-1 mt-2"
-          @click="toggle"
+      <v-slide-group mandatory="force" v-model="expandMode">
+        <v-slide-group-item value="none"
+          v-slot="{ isSelected, toggle }"
         >
-          Expand None
-        </v-btn>
-      </v-slide-group-item>
-      <v-slide-group-item value="first"
-        v-slot="{ isSelected, toggle }"
-      >
-        <v-btn
-          rounded="0"
-          density=compact
-          :color="isSelected ? 'purple' : '#999'"
-          :style="isSelected ? 'border-left: 4px solid purple; padding-left: 1px;' : 'padding-left: 5px'"
-          class="ma-1 mt-2"
-          @click="toggle"
+          <v-btn
+            rounded="0"
+            density=compact
+            :color="isSelected ? 'purple' : '#999'"
+            :style="isSelected ? 'border-left: 4px solid purple; padding-left: 1px;' : 'padding-left: 5px'"
+            class="ma-1 mt-2"
+            @click="toggle"
+          >
+            Expand None
+          </v-btn>
+        </v-slide-group-item>
+        <v-slide-group-item value="first"
+          v-slot="{ isSelected, toggle }"
         >
-          Expand First
-        </v-btn>
-      </v-slide-group-item>
-      <v-slide-group-item value="all"
-        v-slot="{ isSelected, toggle }"
-      >
-        <v-btn
-          rounded="0"
-          density=compact
-          :color="isSelected ? 'purple' : '#999'"
-          :style="isSelected ? 'border-left: 4px solid purple; padding-left: 1px;' : 'padding-left: 5px'"
-          class="ma-1 mt-2"
-          @click="toggle"
+          <v-btn
+            rounded="0"
+            density=compact
+            :color="isSelected ? 'purple' : '#999'"
+            :style="isSelected ? 'border-left: 4px solid purple; padding-left: 1px;' : 'padding-left: 5px'"
+            class="ma-1 mt-2"
+            @click="toggle"
+          >
+            Expand First
+          </v-btn>
+        </v-slide-group-item>
+        <v-slide-group-item value="all"
+          v-slot="{ isSelected, toggle }"
         >
-          Expand All
-        </v-btn>
-      </v-slide-group-item>
-    </v-slide-group>
-  </div>
+          <v-btn
+            rounded="0"
+            density=compact
+            :color="isSelected ? 'purple' : '#999'"
+            :style="isSelected ? 'border-left: 4px solid purple; padding-left: 1px;' : 'padding-left: 5px'"
+            class="ma-1 mt-2"
+            @click="toggle"
+          >
+            Expand All
+          </v-btn>
+        </v-slide-group-item>
+      </v-slide-group>
+    </div>
 
     <div class="mt-6 mr-9 ml-15" >
       <v-switch v-model="autoRefresh" label="auto-refresh" density="compact" @click="this.setQueryString()"></v-switch>
@@ -440,10 +440,12 @@
                 </v-text-field>
               </template>
               <template v-slot:activator="{ props: activatorProps }">
-                <v-icon color="green" v-if="searchAlertName != null && searchAlertName.length > 0 && !searchAlertName.startsWith('!')" 
+                <v-icon color="green" v-if="searchAlertName != null && !searchAlertName.includes(',') && searchAlertName.length > 0 && !searchAlertName.startsWith('!')" 
                     v-bind="activatorProps">mdi-filter-check</v-icon>
-                <v-icon color="red" v-if="searchAlertName != null && searchAlertName.length > 0 && searchAlertName.startsWith('!')" 
-                    v-bind="activatorProps">mdi-filter-remove</v-icon>                    
+                <v-icon color="red" v-if="searchAlertName != null && !searchAlertName.includes(',') && searchAlertName.length > 0 && searchAlertName.startsWith('!')" 
+                    v-bind="activatorProps">mdi-filter-remove</v-icon>
+                <v-icon color="blue" v-if="searchAlertName != null && searchAlertName.includes(',')" 
+                    v-bind="activatorProps">mdi-filter-plus</v-icon>                    
                 <v-icon color="#999" v-if="searchAlertName == null || searchAlertName.length == 0" v-bind="activatorProps">mdi-filter-off</v-icon>
               </template>
             </v-dialog>
@@ -462,10 +464,12 @@
                 </v-text-field>
               </template>
               <template v-slot:activator="{ props: activatorProps }">
-                <v-icon color="green" v-if="searchInstance != null && searchInstance.length > 0 && !searchInstance.startsWith('!')" 
+                <v-icon color="green" v-if="searchInstance != null && !searchInstance.includes(',') && searchInstance.length > 0 && !searchInstance.startsWith('!')" 
                     v-bind="activatorProps">mdi-filter-check</v-icon>
-                <v-icon color="red" v-if="searchInstance != null && searchInstance.length > 0 && searchInstance.startsWith('!')" 
-                    v-bind="activatorProps">mdi-filter-remove</v-icon>                    
+                <v-icon color="red" v-if="searchInstance != null && !searchInstance.includes(',') && searchInstance.length > 0 && searchInstance.startsWith('!')" 
+                    v-bind="activatorProps">mdi-filter-remove</v-icon>
+                <v-icon color="blue" v-if="searchInstance != null && searchInstance.includes(',')" 
+                    v-bind="activatorProps">mdi-filter-plus</v-icon>                    
                 <v-icon color="#999" v-if="searchInstance == null || searchInstance.length == 0" v-bind="activatorProps">mdi-filter-off</v-icon>
               </template>
             </v-dialog>
@@ -484,10 +488,12 @@
                 </v-text-field>
               </template>
               <template v-slot:activator="{ props: activatorProps }">
-                <v-icon color="green" v-if="searchTeam != null && searchTeam.length > 0 && !searchTeam.startsWith('!')" 
+                <v-icon color="green" v-if="searchTeam != null && !searchTeam.includes(',') && searchTeam.length > 0 && !searchTeam.startsWith('!')" 
                     v-bind="activatorProps">mdi-filter-check</v-icon>
-                <v-icon color="red" v-if="searchTeam != null && searchTeam.length > 0 && searchTeam.startsWith('!')" 
-                    v-bind="activatorProps">mdi-filter-remove</v-icon>                    
+                <v-icon color="red" v-if="searchTeam != null && !searchTeam.includes(',') && searchTeam.length > 0 && searchTeam.startsWith('!')" 
+                    v-bind="activatorProps">mdi-filter-remove</v-icon>
+                <v-icon color="blue" v-if="searchTeam != null && searchTeam.includes(',')" 
+                    v-bind="activatorProps">mdi-filter-plus</v-icon>                    
                 <v-icon color="#999" v-if="searchTeam == null || searchTeam.length == 0" v-bind="activatorProps">mdi-filter-off</v-icon>
               </template>
             </v-dialog>
@@ -506,10 +512,12 @@
                 </v-text-field>
               </template>
               <template v-slot:activator="{ props: activatorProps }">
-                <v-icon color="green" v-if="searchSummary != null && searchSummary.length > 0 && !searchSummary.startsWith('!')" 
+                <v-icon color="green" v-if="searchSummary != null && !searchSummary.includes(',') && searchSummary.length > 0 && !searchSummary.startsWith('!')" 
                     v-bind="activatorProps">mdi-filter-check</v-icon>
-                <v-icon color="red" v-if="searchSummary != null && searchSummary.length > 0 && searchSummary.startsWith('!')" 
-                    v-bind="activatorProps">mdi-filter-remove</v-icon>                    
+                <v-icon color="red" v-if="searchSummary != null && !searchSummary.includes(',') && searchSummary.length > 0 && searchSummary.startsWith('!')" 
+                    v-bind="activatorProps">mdi-filter-remove</v-icon>
+                <v-icon color="blue" v-if="searchSummary != null && searchSummary.includes(',')" 
+                    v-bind="activatorProps">mdi-filter-plus</v-icon>                    
                 <v-icon color="#999" v-if="searchSummary == null || searchSummary.length == 0" v-bind="activatorProps">mdi-filter-off</v-icon>
               </template>
             </v-dialog>

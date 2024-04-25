@@ -127,45 +127,25 @@ export default {
           field: "alert.labels.alertname",
           criteria: this.searchAlertName,
           comparison: (value, criteria) =>
-            criteria == null ||
-            (value != null &&
-            criteria != null &&
-            typeof value === "string" &&
-            ((!criteria.startsWith("!") && value.includes(criteria)) || 
-                (criteria.startsWith("!") && !value.includes(criteria.substring(1)))))
+            this.getComparison(value, criteria)
         })
         filterOptionsArray.push({
           field: "alert.labels.instance",
           criteria: this.searchInstance,
           comparison: (value, criteria) =>
-            criteria == null ||
-            (value != null &&
-            criteria != null &&
-            typeof value === "string" &&
-            ((!criteria.startsWith("!") && value.includes(criteria)) || 
-                (criteria.startsWith("!") && !value.includes(criteria.substring(1)))))
+            this.getComparison(value, criteria)
         })
         filterOptionsArray.push({
           field: "alert.labels.team",
           criteria: this.searchTeam,
           comparison: (value, criteria) =>
-            criteria == null ||
-            (value != null &&
-            criteria != null &&
-            typeof value === "string" &&
-            ((!criteria.startsWith("!") && value.includes(criteria)) || 
-                (criteria.startsWith("!") && !value.includes(criteria.substring(1)))))
+            this.getComparison(value, criteria)
         })
         filterOptionsArray.push({
           field: "alert.annotations.summary",
           criteria: this.searchSummary,
           comparison: (value, criteria) =>
-            criteria == null ||
-            (value != null &&
-            criteria != null &&
-            typeof value === "string" &&
-            ((!criteria.startsWith("!") && value.includes(criteria)) || 
-                (criteria.startsWith("!") && !value.includes(criteria.substring(1)))))
+            this.getComparison(value, criteria)
         })
         return filterOptionsArray
       }),
@@ -393,7 +373,32 @@ export default {
 
     //END TEST
 
-
+    getComparison(value, criteria) {
+      if (criteria == null) return true;
+      const parts = criteria.split(",");
+      let i = 0;
+      let incl = 0;
+      let excl = 0;
+      let inclPossible = 0;
+      while (i < parts.length) {
+        let part = parts[i];
+        if (value != null &&
+          typeof value === "string" &&
+          (!part.startsWith("!"))) {
+            inclPossible++;
+            if (value.includes(part)) incl++;  
+        } else if (value != null &&
+          typeof value === "string" &&
+          (part.startsWith("!") && value.includes(part.substring(1)))) {
+            excl++;
+            break;
+        }
+        i++;
+      }
+      //console.log("CRITERIA:"+criteria+" value="+value+",inclPossible="+inclPossible+",incl="+incl+",excl="+excl);
+      if ((incl > 0 || inclPossible == 0) && excl == 0) return true;
+      return false;
+    },
 
     getSummaryHeader(name, summary) {
         return (""+summary).split('\n')[0] + "";
