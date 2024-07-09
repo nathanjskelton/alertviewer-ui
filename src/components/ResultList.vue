@@ -68,7 +68,7 @@
     </div>
 
     <div class="mt-6 mr-9 ml-15" >
-      <v-switch v-model="autoRefresh" label="auto-refresh" density="compact" @click="this.setQueryString()"></v-switch>
+      <v-switch :style="autoRefresh ? 'color: green;' : 'color: red;'" v-model="autoRefresh" :label="autoRefresh ? 'auto-refresh enabled' : 'auto-refresh disabled'"  density="compact" @update:modelValue="this.setQueryString();"></v-switch>
     </div>
 
     <v-btn class="mt-0" tile @click="fetchData()" target="_blank" text :color="refreshStyle">

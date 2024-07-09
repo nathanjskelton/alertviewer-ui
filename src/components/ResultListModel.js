@@ -73,7 +73,7 @@ export default {
       },
       silences: [],
 
-      autoRefresh: false,
+      autoRefresh: true,
       statuses: ['NEW'],
       sessionId: null,
       logTypes: [],
@@ -296,7 +296,7 @@ export default {
       console.log(this.dataTable);
       console.log("statuses:"+this.query.statuses);
       console.log("autoRefresh:"+this.query.autoRefresh);
-      this.autoRefresh = true;
+      //this.autoRefresh = true;
 
       if (this.query.severity != null && Array.isArray(this.query.severity)) {
         this.searchSeverity = this.query.severity;
@@ -333,10 +333,10 @@ export default {
         this.groupField = this.query.groupField;
       }
 
-      if (this.query.autoRefresh == "true") {
-        this.autoRefresh = true;
-      } else {
+      if (this.query.autoRefresh == "false") {
         this.autoRefresh = false;
+      } else {
+        this.autoRefresh = true;
       }
 
       if (this.query.expandMode == null) {
