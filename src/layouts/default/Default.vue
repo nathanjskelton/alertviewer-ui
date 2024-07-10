@@ -2,7 +2,7 @@
   <v-app>
     <app-bar :cortana_user=getUser() :cortana_role=getRole() />
     <default-view @alertManagerStatus="setAlertManagers" 
-      @alerts="setAlerts" @alert="setAlert"  @status="setStatus" @user="setUser" @role="setRole" />
+      @alerts="setAlerts" @alert="setAlert"  @status="setStatus" @lastIngest="setLastIngest" @user="setUser" @role="setRole" />
     
     <v-footer app color="white" class="ma-0 pa-0">
       <v-container fluid class="ma-0 pa-0">
@@ -15,9 +15,10 @@
       <v-row dense >
         <v-col class="ma-0 pa-0">
         <v-card class="pa-0" height="30px" flat color="grey lighten-2"><v-card-text class="pt-1 ps-5">
-          {{ status }}  <span style="padding-left: 20px;" v-for="item, key in alertManagerStatus">
-            <v-icon color=red v-if="item==false" class="mb-1">mdi-alert-circle</v-icon>
-            <v-icon v-if="item==true" class="mb-1">mdi-check-circle</v-icon>  {{key}}</span></v-card-text></v-card>
+          {{ status }} &nbsp;&nbsp; Data is {{ lastIngest }} seconds old. <span style="padding-left: 20px;" v-for="item, key in alertManagerStatus">
+            <v-icon color=red v-if="lastIngest != 'MANY' && item==false" class="mb-1">mdi-alert-circle</v-icon>
+            <v-icon color=#339933 v-if="lastIngest != 'MANY' && item==true" class="mb-1">mdi-check-circle</v-icon>
+            <v-icon color=red v-if="lastIngest == 'MANY'" class="mb-1">mdi-help-circle</v-icon>  {{key}}</span></v-card-text></v-card>
         </v-col>
       </v-row>
       </v-container>
@@ -38,6 +39,7 @@
   const user = ref('');
   const role = ref('');
   const status = ref('Initializing...');
+  const lastIngest = ref(0);
   const alerts = ref([]);
   const alertType = ref('success');
   const showAlert = ref(false);
@@ -66,6 +68,10 @@
   
   function setStatus(x) {
     status.value = x;
+  }
+
+  function setLastIngest(x) {
+    lastIngest.value = x;
   }
 
   function setUser(x) {

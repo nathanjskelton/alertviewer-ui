@@ -24,7 +24,7 @@ export default {
   computed: {
     
   },
-  emits: ['alerts','alert','status','token','user','role','alertManagerStatus'],
+  emits: ['alerts','alert','status','token','user','role','alertManagerStatus','lastIngest'],
   data() {
     return {
       rowsPerPage: null,
@@ -428,11 +428,9 @@ export default {
           this.sessionId = response.data.payload.sessionId;
           //this.$emit("alerts", response.data.payload.messageStack); 
           this.$emit("status", response.data.payload.statusMessage);
+          this.$emit("lastIngest", response.data.payload.lastIngestSecs);
+          console.log("lastIngest: "+response.data.payload.lastIngestSecs)
           this.$emit("alertManagerStatus", response.data.payload.alertManagerStatus);
-          
-          if (response.data.payload.dataStale) {
-            this.refreshStyle = "red lighten-1";
-          }
 
         })
         .catch(error => {
@@ -489,6 +487,8 @@ export default {
 
     handleError(error) {
       this.$emit("alert", error, "error");
+      this.$emit("status", "COMMUNICATION ERROR.");
+      this.$emit("lastIngest", "MANY");
       this.login();
 
     },
