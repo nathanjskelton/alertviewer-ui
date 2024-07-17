@@ -467,6 +467,16 @@ export default {
       }
       return "gray";
     },
+    getColorByPercent(pct) {
+      if (pct >= 75) {
+        return "#F00";
+      } else if (pct >= 50) {
+        return "#ed3333";
+      } else if (pct >= 25) {
+        return "#f75a5a";
+      }
+      return "#f16c6c";
+    },
     getLastOccColor(item) {
       let color = "gray";
       let date1 = new Date(item.lastOccurence);

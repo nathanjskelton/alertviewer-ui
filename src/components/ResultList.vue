@@ -111,7 +111,7 @@
     <div class="pa-2" >
       <v-card class="px-2" style="background-color:rgba(0, 0, 0, 0.04);" >
         <v-card-title style="max-height: 45px" class="caption">Status</v-card-title>
-          <v-checkbox style="max-height: 45px" hide-details dense v-model="statuses" label="FIRING" value="NEW" append-icon="mdi-bell-ring"></v-checkbox>
+          <v-checkbox style="max-height: 45px" hide-details dense v-model="statuses" label="FIRING" value="NEW" append-icon="mdi-alert-outline"></v-checkbox>
           
           <v-checkbox style="max-height: 45px" hide-details dense v-model="statuses" label="ACKED" value="ACKED" append-icon="mdi-account-check"></v-checkbox>
           <v-checkbox style="max-height: 45px" hide-details dense v-model="statuses" label="RESOLVED" value="RESOLVED" append-icon="mdi-checkbox-marked-circle-outline"></v-checkbox>
@@ -121,7 +121,7 @@
 
       <v-card class="mt-2 px-2" style="background-color:rgba(0, 0, 0, 0.04);" >
         <v-card-title style="max-height: 45px" class="caption">Attributes</v-card-title>
-        <v-checkbox style="margin-bottom: 10px; max-height: 45px" hide-details dense v-model="statuses" label="FLAPPING" value="FLAPPING" append-icon="mdi-swap-vertical"></v-checkbox>
+        <v-checkbox style="margin-bottom: 10px; max-height: 45px" hide-details dense v-model="statuses" label="FLAPPING" value="FLAPPING" append-icon="mdi-sync-alert"></v-checkbox>
       </v-card>
 
     </div>
@@ -546,6 +546,29 @@
             <div ><v-chip size="small" :color="getLastOccColor(item)">{{ item.duration }}</v-chip></div>
           </template>
 
+          <template #item-icon="item">
+            <div style="border: 0; width: 50px;">
+              <v-progress-circular v-if="item.status == 'NEW'" :rotate="0" :size="26" :width="2" bg-color="#ddd" 
+                  :color="getColorByPercent(Math.round((((new Date(item.alert.endsAt) - new Date()) / 1000)) / 240 * 100))"
+                  :model-value="Math.round((((new Date(item.alert.endsAt) - new Date()) / 1000)) / 240 * 100)" >
+                <template v-slot:default>
+                  <v-icon  style="padding-bottom: 2px;" color=red @click="alertDetails.dialog=true;alertDetails.item=item;" 
+                      v-if="item.status == 'NEW' && item.flapping != true">mdi-alert-outline</v-icon> 
+                  <v-icon style="padding-bottom: 0px;" color=red v-if="item.flapping == true">mdi-sync-alert</v-icon> 
+                </template>
+              </v-progress-circular>
+
+              <table v-if="item.status != 'NEW'"><tr><td style="padding-left: 3px;">
+                  <v-icon color=grey class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'SILENCED'">mdi-sleep</v-icon> 
+                  <v-icon color=orange class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'ACKED'">mdi-account-check</v-icon> 
+                  <v-icon color=green class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon> 
+                  </td><td>
+                  <v-icon color=red class="pb-0" v-if="item.flapping == true">mdi-sync-alert</v-icon> 
+                  </td></tr>
+              </table>
+            </div>
+          </template>
+
           <template #item-alert.labels.severity="item">
             <div ><v-chip size="small" :color="getSeverityColor(item)">{{ item.alert.labels.severity }}</v-chip></div>
           </template>
@@ -568,91 +591,7 @@
             </div>
           </template>    
 
-<!--
-          <template #header-alert.labels.instance="header">
-            <div style="margin-top: 8px; width: 75px;">
-              <v-row no-gutters align-content="start" justify="start">
-              <v-col cols=8>
-                {{header.text}}
-              </v-col>  
-              <v-col cols=4>
-              <v-img
-                height="25"
-                x-small
-                elevation="0"
-              >
-                <v-icon v-if="searchValue != ''" color=blue x-small>mdi-magnify</v-icon>
-              </v-img>
-              </v-col></v-row>
-            </div>
-          </template>
-          
-          
-          <template #header-alert.labels.alertname="header">
-            <div style="margin-top: 8px; width: 85px;">
-              <v-row no-gutters align-content="start" justify="start">
-              <v-col cols=8>
-                {{header.text}}
-              </v-col>  
-              <v-col cols=4>
-              <v-img
-                height="25"
-                x-small
-                elevation="0"
-              >
-                <v-icon v-if="searchValue != ''" color=blue x-small>mdi-magnify</v-icon>
-              </v-img>
-              </v-col></v-row>
-            </div>
-          </template>    
-        
-          <template #header-alert.annotations.summary="header">
-            <div style="margin-top: 8px; width: 85px;">
-              <v-row no-gutters align-content="start" justify="start">
-              <v-col cols=8>
-                {{header.text}}
-              </v-col>  
-              <v-col cols=4>
-              <v-img
-                height="25"
-                x-small
-                elevation="0"
-              >
-                <v-icon v-if="searchValue != ''" color=blue x-small>mdi-magnify</v-icon>
-              </v-img>
-              </v-col></v-row>
-            </div>
-          </template>   
 
-          <template #header-alert.labels.team="header">
-            <div style="margin-top: 8px; width: 60px;">
-              <v-row no-gutters align-content="start" justify="start">
-              <v-col cols=8>
-                {{header.text}}
-              </v-col>  
-              <v-col cols=4>
-              <v-img
-                height="25"
-                x-small
-                elevation="0"
-              >
-                <v-icon v-if="searchValue != ''" color=blue x-small>mdi-magnify</v-icon>
-              </v-img>
-              </v-col></v-row>
-            </div>
-          </template>   
-        -->
-
-          <template #item-icon="item">
-            <table><tr><td>
-            <v-icon color=red class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'NEW'">mdi-bell-ring</v-icon> 
-            <v-icon color=grey class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'SILENCED'">mdi-sleep</v-icon> 
-            <v-icon color=orange class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'ACKED'">mdi-account-check</v-icon> 
-            <v-icon color=green class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon> 
-            </td><td>
-            <v-icon color=red class="pb-0" v-if="item.flapping == true">mdi-swap-vertical</v-icon> 
-            </td></tr></table>
-          </template>
 
           <template #item-alert.labels.gm_instance="item">
             <div v-if="item.alert.labels.gm_instance != null && item.alert.annotations.gm_instance_from_am == null">
