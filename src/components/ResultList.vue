@@ -549,12 +549,13 @@
           <template #item-icon="item">
             <div style="border: 0; width: 50px;">
               <v-progress-circular v-if="item.status == 'NEW'" :rotate="0" :size="26" :width="2" bg-color="#ddd" 
-                  :color="getColorByPercent(Math.round((((new Date(item.alert.endsAt) - new Date()) / 1000)) / 240 * 100))"
-                  :model-value="Math.round((((new Date(item.alert.endsAt) - new Date()) / 1000)) / 240 * 100)" >
+                  :color="getColorByPercent(Math.round((((new Date(item.alert.endsAt) - new Date()) / 1000)) / 300 * 100))"
+                  :model-value="Math.round((((new Date(item.alert.endsAt) - new Date()) / 1000)) / 300 * 100)" >
                 <template v-slot:default>
                   <v-icon  style="padding-bottom: 2px;" color=red @click="alertDetails.dialog=true;alertDetails.item=item;" 
                       v-if="item.status == 'NEW' && item.flapping != true">mdi-alert-outline</v-icon> 
-                  <v-icon style="padding-bottom: 0px;" color=red v-if="item.flapping == true">mdi-sync-alert</v-icon> 
+                  <v-icon style="padding-bottom: 0px;" color=red @click="alertDetails.dialog=true;alertDetails.item=item;" 
+                      v-if="item.flapping == true">mdi-sync-alert</v-icon> 
                 </template>
               </v-progress-circular>
 

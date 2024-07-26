@@ -429,7 +429,6 @@ export default {
           //this.$emit("alerts", response.data.payload.messageStack); 
           this.$emit("status", response.data.payload.statusMessage);
           this.$emit("lastIngest", response.data.payload.lastIngestSecs);
-          console.log("lastIngest: "+response.data.payload.lastIngestSecs)
           this.$emit("alertManagerStatus", response.data.payload.alertManagerStatus);
 
         })
@@ -468,14 +467,9 @@ export default {
       return "gray";
     },
     getColorByPercent(pct) {
-      if (pct >= 75) {
-        return "#F00";
-      } else if (pct >= 50) {
-        return "#ed3333";
-      } else if (pct >= 25) {
-        return "#f75a5a";
-      }
-      return "#f16c6c";
+      let value = "rgba(255, 0, 0, "+(pct/100)+")";
+      console.log("VALUE: "+value);
+      return value;
     },
     getLastOccColor(item) {
       let color = "gray";
