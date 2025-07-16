@@ -7,6 +7,8 @@
 </script>
 
 <style>
+
+
 .customize-table {
 
   --easy-table-header-background-color: #eee;

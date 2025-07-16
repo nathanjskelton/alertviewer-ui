@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 <template>
-  <v-app-bar 
+  <v-app-bar class="mt-5"
     color="purple-lighten-5"
     density="compact"
     dark
@@ -89,7 +89,7 @@
     
   <!-- DRAWER -->
 
-  <v-navigation-drawer v-model="showDrawer" app color="purple-lighten-5">
+  <v-navigation-drawer v-model="showDrawer" app color="purple-lighten-5" class="mt-5">
     <div class="px-2 mt-0">
       <v-btn width=250 height=50 @click="searchAlertName=null;searchTeam=null;searchInstance=null;searchSummary=null;
           searchGmInstance=[];panel=[];groupField=null;searchSeverity=[];

@@ -1,6 +1,7 @@
 <template>
 
   <v-app-bar height="40"    
+        class="mt-5"
         color="purple-lighten-5"
         dense
         dark
