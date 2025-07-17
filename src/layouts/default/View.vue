@@ -1,7 +1,7 @@
 <template>
   <v-main >
     <router-view @alertManagerStatus="setAlertManagers" @alerts="setAlerts" @alert="setAlert"  @status="setStatus" 
-        @token="setToken" @user="setUser" @role="setRole"  @lastIngest="setLastIngest"
+        @token="setToken" @user="setUser" @role="setRole"  @lastIngest="setLastIngest" @banner="setBanner"
         :cortana_token=this.cortana_token :cortana_user=this.cortana_user :cortana_role=this.cortana_role />
   </v-main>
 </template>
@@ -24,6 +24,9 @@
       },
       setStatus(status) {
         this.$emit('status', status);
+      },
+      setBanner(banner) {
+        this.$emit('banner', banner);
       },
       setToken(cortana_token) {
         this.cortana_token = cortana_token;

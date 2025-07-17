@@ -24,7 +24,7 @@ export default {
   computed: {
     
   },
-  emits: ['alerts','alert','status','token','user','role','alertManagerStatus','lastIngest'],
+  emits: ['alerts','alert','status','token','user','role','banner','alertManagerStatus','lastIngest'],
   data() {
     return {
       rowsPerPage: null,
@@ -416,6 +416,7 @@ export default {
           this.$emit("token", response.headers['cortana-token']);
           this.$emit('user', response.headers['cortana-user']);
           this.$emit("role", response.headers['cortana-role']);
+          this.$emit("banner", response.headers['cortana-banner']);
           console.log("HEADERS "+response.headers)
         });
     },

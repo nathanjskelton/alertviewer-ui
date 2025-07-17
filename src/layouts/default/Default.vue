@@ -5,14 +5,14 @@
     <v-row dense >
       <v-col class="ma-0 pa-0">
       <v-card class="pa-0 d-flex align-center justify-center" height="30px" flat color="red lighten-2">
-        <span>{{ bannerText }}</span></v-card>
+        <span>{{ banner }}</span></v-card>
       </v-col>
     </v-row>
     
     </v-container>
     <app-bar :cortana_user=getUser() :cortana_role=getRole() />
     <default-view @alertManagerStatus="setAlertManagers" 
-      @alerts="setAlerts" @alert="setAlert"  @status="setStatus" @lastIngest="setLastIngest" @user="setUser" @role="setRole" />
+      @alerts="setAlerts" @alert="setAlert" @banner="setBanner" @status="setStatus" @lastIngest="setLastIngest" @user="setUser" @role="setRole" />
     
     <v-footer app class="ma-0 pa-0">
       <v-container fluid class="ma-0 pa-0">
@@ -67,6 +67,7 @@
   const alerts = ref([]);
   const alertType = ref('success');
   const showAlert = ref(false);
+  const banner = ref('');
   
   const alertManagerStatus = ref('');
 
@@ -76,6 +77,10 @@
 
   function getRole() {
     return role;
+  }
+
+  function getBanner() {
+    return banner;
   }
 
   function setAlert(x, t) {
@@ -92,6 +97,11 @@
   
   function setStatus(x) {
     status.value = x;
+  }
+
+  function setBanner(x) {
+    banner.value = x;
+    console.log("Default setBanner: "+x);
   }
 
   function setLastIngest(x) {
