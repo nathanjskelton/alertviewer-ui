@@ -374,44 +374,20 @@
   </v-toolbar> 
   -->
 
-  <v-expansion-panels v-model="panel" multiple flat class="group-panels">
-    <template v-for="group, key in info" :key="key">
-    <v-expansion-panel v-if="groupStats[key] && groupStats[key].total > 0" :value="key" bg-color="transparent" elevation="0">
-      <v-expansion-panel-title class="group-header" hide-actions>
-        <template v-slot:default="{ expanded }">
-            <v-icon size="small" class="group-chevron" :class="{ 'group-chevron--open': expanded }">mdi-chevron-right</v-icon>
-            <span class="group-title">
-              <template v-if="key == 'ALL'">All Records</template>
-              <template v-else>{{ groupTitle(key) }}</template>
-            </span>
-            <v-spacer></v-spacer>
-            <v-chip v-if="groupStats[key].firingFor != null" size="x-small" label variant="tonal" color="orange" class="mr-2" prepend-icon="mdi-clock-outline">
-              firing for {{ groupStats[key].firingFor }}
-            </v-chip>
-            <v-chip size="x-small" label variant="tonal" :color="groupStats[key].firing > 0 ? 'red' : 'green'">
-              {{ groupStats[key].firing }}/{{ groupStats[key].total }} firing
-            </v-chip>
-        </template>
-      </v-expansion-panel-title>
-      <v-expansion-panel-text >
-        <EasyDataTable
-          ref="dataTable"
-          :headers="headers"
-          :items="group.list"
-          :loading="loading"
-          :sort-by="sortBy"
-          :sort-type="sortType"
-          :rows-items=[1,5,15,25,50,100]
-          :table-min-height=10
-          :hide-footer="group.list.length <= this.rowsPerPage"
-          :rows-per-page="this.rowsPerPage"
-          :filter-options="filterOptions"
-          :header-item-class-name="headerItemClassName"
-          table-class-name="customize-table"
-        
-        >
-
-          <!-- HEADERS -->
+  <!-- Single shared column header (with filters) for all groups -->
+  <EasyDataTable
+    class="master-header-root"
+    :headers="headers"
+    :items="[]"
+    :sort-by="sortBy"
+    :sort-type="sortType"
+    :filter-options="filterOptions"
+    :header-item-class-name="headerItemClassName"
+    :table-min-height="0"
+    hide-footer
+    table-class-name="customize-table master-header"
+    @update-sort="sortBy = $event.sortBy; sortType = $event.sortType"
+  >
 
           <template #header-alert.labels.severity="header">
             <v-dialog offset=-40 max-width="300" location-strategy="connected">
@@ -551,7 +527,52 @@
             <div>Summary</div>
           </template>
 
-          
+  </EasyDataTable>
+
+  <v-expansion-panels v-model="panel" multiple flat class="group-panels">
+    <template v-for="group, key in info" :key="key">
+    <v-expansion-panel v-if="groupStats[key] && groupStats[key].total > 0" :value="key" bg-color="transparent" elevation="0">
+      <v-expansion-panel-title class="group-header" hide-actions>
+        <template v-slot:default="{ expanded }">
+            <v-icon size="small" class="group-chevron" :class="{ 'group-chevron--open': expanded }">mdi-chevron-right</v-icon>
+            <span class="group-title">
+              <template v-if="key == 'ALL'">Ungrouped</template>
+              <template v-else>{{ groupTitle(key) }}</template>
+            </span>
+            <v-spacer></v-spacer>
+            <v-chip v-if="groupStats[key].newCount > 0" size="x-small" label variant="flat" color="red" class="mr-2" prepend-icon="mdi-alert-decagram">
+              {{ groupStats[key].newCount }} new
+            </v-chip>
+            <v-chip v-if="groupStats[key].staleCount > 0" size="x-small" label variant="flat" color="blue-grey" class="mr-2" prepend-icon="mdi-clock-alert">
+              {{ groupStats[key].staleCount }} stale
+            </v-chip>
+            <v-chip v-if="groupStats[key].firingFor != null" size="x-small" label variant="tonal" color="orange" class="mr-2" prepend-icon="mdi-clock-outline">
+              firing for {{ groupStats[key].firingFor }}
+            </v-chip>
+            <v-chip size="x-small" label variant="tonal" :color="groupStats[key].firing > 0 ? 'red' : 'green'">
+              {{ groupStats[key].firing }}/{{ groupStats[key].total }} firing
+            </v-chip>
+        </template>
+      </v-expansion-panel-title>
+      <v-expansion-panel-text >
+        <EasyDataTable
+          ref="dataTable"
+          :key="'tbl-' + key + '-' + sortBy + '-' + sortType"
+          :headers="headers"
+          :items="group.list"
+          :loading="loading"
+          :sort-by="sortBy"
+          :sort-type="sortType"
+          hide-header
+          :rows-items=[1,5,15,25,50,100]
+          :table-min-height=10
+          :hide-footer="group.list.length <= this.rowsPerPage"
+          :rows-per-page="this.rowsPerPage"
+          :filter-options="filterOptions"
+          :body-row-class-name="bodyRowClassName"
+          table-class-name="customize-table"
+        >
+
 
           <!-- ITEMS -->
 
@@ -571,7 +592,9 @@
 
           <template #item-icon="item">
             <div style="border: 0; display: flex; align-items: center; gap: 2px;">
-              <v-progress-circular v-if="item.status == 'NEW'" :rotate="0" :size="26" :width="2" bg-color="#ddd"
+              <v-icon v-if="isStale(item)" size="24" color="blue-grey-darken-1" class="mr-1"
+                  title="Alertmanager offline — this alert may be stale">mdi-clock-alert</v-icon>
+              <v-progress-circular v-if="item.status == 'NEW' && !isStale(item)" :rotate="0" :size="26" :width="2" bg-color="#ddd"
                   :color="getColorByPercent(Math.round((((new Date(item.alert.endsAt) - new Date()) / 1000)) / 300 * 100))"
                   :model-value="Math.round((((new Date(item.alert.endsAt) - new Date()) / 1000)) / 300 * 100)" >
                 <template v-slot:default>
@@ -582,7 +605,7 @@
                 </template>
               </v-progress-circular>
 
-              <table v-if="item.status != 'NEW'"><tr><td style="padding-left: 3px;">
+              <table v-if="item.status != 'NEW' && !isStale(item)"><tr><td style="padding-left: 3px;">
                   <v-icon color=grey class="pb-0" v-if="item.status == 'SILENCED'">mdi-sleep</v-icon>
                   <v-icon color=orange class="pb-0" v-if="item.status == 'ACKED'">mdi-account-check</v-icon>
                   <v-icon color=green class="pb-0" v-if="item.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon>

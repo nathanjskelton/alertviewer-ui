@@ -79,6 +79,7 @@ export default {
 
       autoRefresh: true,
       showExtraLabels: false,
+      alertManagerStatus: {},
       statuses: ['NEW'],
       sessionId: null,
       logTypes: [],
@@ -164,12 +165,20 @@ export default {
           const list = this.applyClientFilters(group.list || []);
           let firing = 0;
           let maxMs = 0;
+          let newCount = 0;
+          let staleCount = 0;
           list.forEach(item => {
+            if (this.isStale(item)) {
+              staleCount++;
+            }
             if (item.status == "NEW") {
               firing++;
               const ms = now - new Date(item.alert.startsAt);
               if (ms > maxMs) {
                 maxMs = ms;
+              }
+              if (ms <= 10 * 60 * 1000) {
+                newCount++;
               }
             }
           });
@@ -177,6 +186,8 @@ export default {
             total: list.length,
             firing: firing,
             firingFor: maxMs > 0 ? this.humanizeDuration(maxMs) : null,
+            newCount: newCount,
+            staleCount: staleCount,
           };
         });
         return stats;
@@ -442,7 +453,7 @@ export default {
         return (""+summary).split('\n')[0] + "";
     },
     autoFetchData() {
-      if (this.autoRefresh) { this.fetchData(); }
+      if (this.autoRefresh) { this.fetchData(false, true); }
     },
 
     login() {
@@ -469,6 +480,9 @@ export default {
           this.$emit("status", response.data.payload.statusMessage);
           this.$emit("lastIngest", response.data.payload.lastIngestSecs);
           this.$emit("alertManagerStatus", response.data.payload.alertManagerStatus);
+          // Keep a local copy so rows can flag alerts from an offline
+          // alertmanager (i.e. potentially stale) data.
+          this.alertManagerStatus = response.data.payload.alertManagerStatus;
 
         })
         .catch(error => {
@@ -571,6 +585,31 @@ export default {
         return key.replace(re, "");
       }
       return key;
+    },
+    isStale(item) {
+      // An alert is potentially stale when the alertmanager it came from is
+      // currently offline (alertManagerStatus maps am name -> true/false).
+      if (item == null || item.alertmanager == null) {
+        return false;
+      }
+      return this.alertManagerStatus[item.alertmanager] === false;
+    },
+    bodyRowClassName(item) {
+      // Stale (offline alertmanager) takes precedence and greys the row.
+      if (this.isStale(item)) {
+        return "stale-row";
+      }
+      // Freshly firing alerts get a red highlight that fades with age.
+      if (item.status == "NEW") {
+        const ms = new Date() - new Date(item.alert.startsAt);
+        if (ms <= 60 * 1000) {
+          return "firing-new-row";
+        }
+        if (ms <= 10 * 60 * 1000) {
+          return "firing-recent-row";
+        }
+      }
+      return "";
     },
     applyClientFilters(list) {
       // Mirror the EasyDataTable filterOptions so header stats match the
@@ -789,9 +828,13 @@ export default {
       }
       this.setQueryString();
     },
-    fetchData(asExport) {
+    fetchData(asExport, background) {
       this.expanded = []
-      this.loading = true;
+      // Background (auto) refreshes keep the current rows on screen and just
+      // swap the data in when it arrives, avoiding the loading-overlay flicker.
+      if (!background) {
+        this.loading = true;
+      }
       this.refreshStyle = "";
       let delim = "?";
       let urlString = this.baseUrl;
