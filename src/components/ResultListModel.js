@@ -67,13 +67,18 @@ export default {
       alertDetails: {
         dialog: false,
         item: null,
-      },      
+      },
+      annotationsDialog: {
+        dialog: false,
+        item: null,
+      },
       silence: {
         dialog: false,
       },
       silences: [],
 
       autoRefresh: true,
+      showExtraLabels: false,
       statuses: ['NEW'],
       sessionId: null,
       logTypes: [],
@@ -148,6 +153,33 @@ export default {
             this.getComparison(value, criteria)
         })
         return filterOptionsArray
+      }),
+      // Per-group counts/duration that respect the same client-side filters
+      // the table applies, so empty/partial groups aren't misrepresented.
+      groupStats: computed(() => {
+        const stats = {};
+        const now = new Date();
+        Object.keys(this.info).forEach(key => {
+          const group = this.info[key];
+          const list = this.applyClientFilters(group.list || []);
+          let firing = 0;
+          let maxMs = 0;
+          list.forEach(item => {
+            if (item.status == "NEW") {
+              firing++;
+              const ms = now - new Date(item.alert.startsAt);
+              if (ms > maxMs) {
+                maxMs = ms;
+              }
+            }
+          });
+          stats[key] = {
+            total: list.length,
+            firing: firing,
+            firingFor: maxMs > 0 ? this.humanizeDuration(maxMs) : null,
+          };
+        });
+        return stats;
       }),
       headers: [
         {
@@ -339,10 +371,16 @@ export default {
         this.autoRefresh = true;
       }
 
-      if (this.query.expandMode == null) {
-        this.expandMode = 'first';
+      if (this.query.showLabels == "true") {
+        this.showExtraLabels = true;
       } else {
-        this.expandMode = this.query.expandMode;
+        this.showExtraLabels = false;
+      }
+
+      if (this.query.grpExpMode == null) {
+        this.expandMode = 'none';
+      } else {
+        this.expandMode = this.query.grpExpMode;
       }
 
       if (this.query.rowsPerPage == null) {
@@ -466,6 +504,96 @@ export default {
         return "orange lighten-1";
       }
       return "gray";
+    },
+    headerItemClassName(header) {
+      // Center the header for columns whose body cells are centered
+      // (Summary is left-aligned, so it is intentionally excluded).
+      const centered = [
+        "alert.startsAt",
+        "alert.labels.severity",
+        "alert.labels.gm_instance",
+        "alert.labels.alertname",
+        "alert.labels.instance",
+        "alert.labels.team",
+      ];
+      return centered.includes(header.value) ? "center-header" : "";
+    },
+    getExtraLabels(item) {
+      // Labels that already have their own column are skipped; everything
+      // else is surfaced as a chip below the row.
+      const skipLabels = ["severity", "gm_instance", "alertname", "instance", "team", "service"];
+      let tags = [];
+      let labels = (item.alert && item.alert.labels) || {};
+      Object.keys(labels).forEach(k => {
+        if (!skipLabels.includes(k) && labels[k] != null && labels[k] !== "") {
+          tags.push({ key: k, value: labels[k] });
+        }
+      });
+      return tags;
+    },
+    getExtraAnnotations(item) {
+      // Annotations other than the ones shown/used in columns.
+      const skipAnnotations = ["summary", "service", "gm_instance_from_am"];
+      let tags = [];
+      let annotations = (item.alert && item.alert.annotations) || {};
+      Object.keys(annotations).forEach(k => {
+        if (!skipAnnotations.includes(k) && annotations[k] != null && annotations[k] !== "") {
+          tags.push({ key: k, value: annotations[k] });
+        }
+      });
+      return tags;
+    },
+    getLabelColor(label) {
+      // Deterministically pick a color from a palette based on the key name,
+      // so the same label always gets the same color across rows.
+      const palette = [
+        "red", "pink", "purple", "deep-purple", "indigo",
+        "blue", "cyan", "teal", "green", "light-green",
+        "amber", "orange", "deep-orange", "brown", "blue-grey",
+      ];
+      let hash = 0;
+      for (let i = 0; i < label.length; i++) {
+        hash = (hash * 31 + label.charCodeAt(i)) & 0xffffffff;
+      }
+      return palette[Math.abs(hash) % palette.length];
+    },
+    groupTitle(key) {
+      // Show only the group value; the field name is redundant with the
+      // "Group by Field" selector in the sidebar. Strips a leading
+      // "<groupField><separator>" prefix if the backend includes one.
+      if (key == null || key == "ALL") {
+        return key;
+      }
+      let field = this.groupField;
+      if (field != null && field != "") {
+        let escaped = field.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        let re = new RegExp("^" + escaped + "[\\s:=/-]+", "i");
+        return key.replace(re, "");
+      }
+      return key;
+    },
+    applyClientFilters(list) {
+      // Mirror the EasyDataTable filterOptions so header stats match the
+      // rows actually shown (severity/gm are server-side, so already applied).
+      return (list || []).filter(item =>
+        this.getComparison(item.alert.labels.alertname, this.searchAlertName) &&
+        this.getComparison(item.alert.labels.instance, this.searchInstance) &&
+        this.getComparison(item.alert.labels.team, this.searchTeam) &&
+        this.getComparison(item.alert.annotations.summary, this.searchSummary)
+      );
+    },
+    humanizeDuration(ms) {
+      let totalMin = Math.floor(ms / 60000);
+      let days = Math.floor(totalMin / 1440);
+      let hours = Math.floor((totalMin % 1440) / 60);
+      let mins = totalMin % 60;
+      if (days > 0) {
+        return days + "d " + hours + "h";
+      }
+      if (hours > 0) {
+        return hours + "h " + mins + "m";
+      }
+      return mins + "m";
     },
     getColorByPercent(pct) {
       let value = "rgba(255, 0, 0, "+(pct/100)+")";
@@ -629,7 +757,8 @@ export default {
           gmInstances: this.searchGmInstance,
           groupField: this.groupField,
           autoRefresh: this.autoRefresh,
-          expandMode: this.expandMode,
+          showLabels: this.showExtraLabels,
+          grpExpMode: this.expandMode,
           rowsPerPage: this.rowsPerPage
         }, replace: true
       });
@@ -642,11 +771,14 @@ export default {
     },
     setPanel(force) {
       var keys = Object.keys(this.info);
+      // No grouping: always expand the single ALL group. Do NOT mutate
+      // expandMode here, or the "first" setting leaks into grouped views.
       if (keys[0] == 'ALL') {
-        this.expandMode = 'first';
-      } 
+        this.panel = keys;
+        this.setQueryString();
+        return;
+      }
       if (this.panel == "" || force) {
-        var keys = Object.keys(this.info);
         if (this.expandMode == "first") {
           this.panel = [keys[0]];
         } else if (this.expandMode == "all") {

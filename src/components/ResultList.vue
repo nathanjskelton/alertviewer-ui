@@ -67,7 +67,11 @@
       </v-slide-group>
     </div>
 
-    <div class="mt-6 mr-9 ml-15" >
+    <div class="mt-6 mr-6 ml-15" >
+      <v-switch color='amber-darken-2' true-icon="mdi-tag-multiple" false-icon="mdi-tag-off" v-model="showExtraLabels" :label="showExtraLabels ? 'extra labels shown' : 'extra labels hidden'" density="compact" @update:modelValue="this.setQueryString();"></v-switch>
+    </div>
+
+    <div class="mt-6 mr-9" >
       <v-switch color='green' true-icon="mdi-refresh" false-icon="mdi-close" :style="autoRefresh ? 'color: green;' : 'color: red;'" v-model="autoRefresh" :label="autoRefresh ? 'auto-refresh enabled' : 'auto-refresh disabled'"  density="compact" @update:modelValue="this.setQueryString();"></v-switch>
     </div>
 
@@ -202,6 +206,23 @@
         </v-container>
       </v-card-text>
 
+    </v-card>
+  </v-dialog>
+
+  <v-dialog max-width="480px" v-model="annotationsDialog.dialog">
+    <v-card v-if="annotationsDialog.item != null">
+      <v-card-title class="pa-3" style="background-color: purple; color: white; font-size: medium; font-weight: bold;">
+        <table style="width: 100%;"><tr>
+          <td>Annotations</td>
+          <td align="right"><v-icon color="white" @click="annotationsDialog.dialog=false;">mdi-window-close</v-icon></td>
+        </tr></table>
+      </v-card-title>
+      <v-card-text class="pa-3">
+        <div v-for="tag in getExtraAnnotations(annotationsDialog.item)" :key="tag.key" class="mb-2">
+          <div style="font-size: 12px; font-weight: bold; color: #6b21a8;">{{ tag.key }}</div>
+          <div style="font-size: 12px; white-space: pre-wrap;">{{ tag.value }}</div>
+        </div>
+      </v-card-text>
     </v-card>
   </v-dialog>
 
@@ -353,19 +374,23 @@
   </v-toolbar> 
   -->
 
-  <v-expansion-panels v-model="panel" multiple>
-    <v-expansion-panel v-for="group, key in info" :value="key">
-      <v-expansion-panel-title style="min-height: 18px; height: 18px; border-bottom: 1px solid #aaa; background-color: #eee;">
+  <v-expansion-panels v-model="panel" multiple flat class="group-panels">
+    <template v-for="group, key in info" :key="key">
+    <v-expansion-panel v-if="groupStats[key] && groupStats[key].total > 0" :value="key" bg-color="transparent" elevation="0">
+      <v-expansion-panel-title class="group-header" hide-actions>
         <template v-slot:default="{ expanded }">
-
-            <div v-if="key == 'ALL'">
-              All Records (No Group Filter)
-            </div>
-            <div v-if="key != 'ALL'">
-              {{key}}
-            </div>
-            <div style="padding-left: 40px;"><v-chip size="small" color="red-lighten-1">{{group.firing}}/{{group.total}} alerts firing</v-chip></div>
-
+            <v-icon size="small" class="group-chevron" :class="{ 'group-chevron--open': expanded }">mdi-chevron-right</v-icon>
+            <span class="group-title">
+              <template v-if="key == 'ALL'">All Records</template>
+              <template v-else>{{ groupTitle(key) }}</template>
+            </span>
+            <v-spacer></v-spacer>
+            <v-chip v-if="groupStats[key].firingFor != null" size="x-small" label variant="tonal" color="orange" class="mr-2" prepend-icon="mdi-clock-outline">
+              firing for {{ groupStats[key].firingFor }}
+            </v-chip>
+            <v-chip size="x-small" label variant="tonal" :color="groupStats[key].firing > 0 ? 'red' : 'green'">
+              {{ groupStats[key].firing }}/{{ groupStats[key].total }} firing
+            </v-chip>
         </template>
       </v-expansion-panel-title>
       <v-expansion-panel-text >
@@ -381,6 +406,7 @@
           :hide-footer="group.list.length <= this.rowsPerPage"
           :rows-per-page="this.rowsPerPage"
           :filter-options="filterOptions"
+          :header-item-class-name="headerItemClassName"
           table-class-name="customize-table"
         
         >
@@ -456,10 +482,10 @@
           <template #header-alert.labels.instance="header">
             <v-dialog offset=-40 max-width="300" location-strategy="connected">
               <template v-slot:default="{ isActive }">
-                <v-text-field label="Instance" @keyup.enter="isActive.value=false" clearable=true 
+                <v-text-field label="Instances" @keyup.enter="isActive.value=false" clearable=true 
                     autofocus=true density=compact bg-color="white"  v-model="searchInstance" @update:modelValue="this.setQueryString();">
                   <template v-slot:append-inner>
-                    <v-icon @click="isActive.value=false">mdi-arrow-right-bold-circle</v-icon>
+                     <v-icon @click="isActive.value=false">mdi-arrow-right-bold-circle</v-icon>
                   </template>
                 </v-text-field>
               </template>
@@ -473,8 +499,8 @@
                 <v-icon color="#999" v-if="searchInstance == null || searchInstance.length == 0" v-bind="activatorProps">mdi-filter-off</v-icon>
               </template>
             </v-dialog>
-            
-            <div>Instance</div>
+
+            <div>Instances</div>
           </template>
 
           <template #header-alert.labels.team="header">
@@ -532,78 +558,83 @@
           <template #item-alert.annotations.summary="item">
             <div style="max-height: 65px;" v-html="getSummaryHeader(item.alert.labels.alertname, item.alert.annotations.summary)">
             </div>
-
+            <div v-if="showExtraLabels && getExtraLabels(item).length > 0" style="display: flex; flex-wrap: wrap; gap: 4px; margin: 3px 0 5px 0;">
+              <v-chip v-for="tag in getExtraLabels(item)" :key="tag.key" size="x-small" label variant="tonal" :color="getLabelColor(tag.key)">
+                <span style="font-weight: 600;">{{ tag.key }}</span>:&nbsp;{{ tag.value }}
+              </v-chip>
+            </div>
           </template>
-
-          <template #expand="item">
-            <div style="border-left: 3px solid #CCC; padding-left: 5px; margin-left: 20px; font-size: 12px; font-weight: bold">{{item.alert.labels.alertname}}: </div>
-            <div style="border-left: 3px solid #CCC; padding-left: 5px; margin-left: 20px; font-size: 12px; vertical-align: top; white-space: pre-wrap;" v-html="item.alert.annotations.summary"></div>
-              
-          </template>
-
 
           <template #item-alert.startsAt="item">
-            <div ><v-chip size="small" :color="getLastOccColor(item)">{{ item.duration }}</v-chip></div>
+            <div style="text-align: center;"><v-chip size="small" :color="getLastOccColor(item)">{{ item.duration }}</v-chip></div>
           </template>
 
           <template #item-icon="item">
-            <div style="border: 0; width: 50px;">
-              <v-progress-circular v-if="item.status == 'NEW'" :rotate="0" :size="26" :width="2" bg-color="#ddd" 
+            <div style="border: 0; display: flex; align-items: center; gap: 2px;">
+              <v-progress-circular v-if="item.status == 'NEW'" :rotate="0" :size="26" :width="2" bg-color="#ddd"
                   :color="getColorByPercent(Math.round((((new Date(item.alert.endsAt) - new Date()) / 1000)) / 300 * 100))"
                   :model-value="Math.round((((new Date(item.alert.endsAt) - new Date()) / 1000)) / 300 * 100)" >
                 <template v-slot:default>
-                  <v-icon  style="padding-bottom: 2px;" color=red @click="alertDetails.dialog=true;alertDetails.item=item;" 
-                      v-if="item.status == 'NEW' && item.flapping != true">mdi-alert-outline</v-icon> 
-                  <v-icon style="padding-bottom: 0px;" color=red @click="alertDetails.dialog=true;alertDetails.item=item;" 
-                      v-if="item.flapping == true">mdi-sync-alert</v-icon> 
+                  <v-icon  style="padding-bottom: 2px;" color=red
+                      v-if="item.status == 'NEW' && item.flapping != true">mdi-alert-outline</v-icon>
+                  <v-icon style="padding-bottom: 0px;" color=red
+                      v-if="item.flapping == true">mdi-sync-alert</v-icon>
                 </template>
               </v-progress-circular>
 
               <table v-if="item.status != 'NEW'"><tr><td style="padding-left: 3px;">
-                  <v-icon color=grey class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'SILENCED'">mdi-sleep</v-icon> 
-                  <v-icon color=orange class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'ACKED'">mdi-account-check</v-icon> 
-                  <v-icon color=green class="pb-0" @click="alertDetails.dialog=true;alertDetails.item=item;" v-if="item.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon> 
+                  <v-icon color=grey class="pb-0" v-if="item.status == 'SILENCED'">mdi-sleep</v-icon>
+                  <v-icon color=orange class="pb-0" v-if="item.status == 'ACKED'">mdi-account-check</v-icon>
+                  <v-icon color=green class="pb-0" v-if="item.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon>
                   </td><td>
-                  <v-icon color=red class="pb-0" v-if="item.flapping == true">mdi-sync-alert</v-icon> 
+                  <v-icon color=red class="pb-0" v-if="item.flapping == true">mdi-sync-alert</v-icon>
                   </td></tr>
               </table>
+
+              <v-icon v-if="getExtraAnnotations(item).length > 0" size="24" color="#EAB308"
+                  class="ml-3" style="cursor: pointer;" title="View annotations"
+                  @click="annotationsDialog.item=item; annotationsDialog.dialog=true;">mdi-note-text</v-icon>
             </div>
+          </template>
+
+          <template #item-alert.labels.instance="item">
+            <div style="text-align: center;">{{ item.alert.labels.instance }}</div>
           </template>
 
           <template #item-alert.labels.severity="item">
-            <div ><v-chip size="small" :color="getSeverityColor(item)">{{ item.alert.labels.severity }}</v-chip></div>
+            <div style="text-align: center;"><v-chip size="small" :color="getSeverityColor(item)">{{ item.alert.labels.severity }}</v-chip></div>
           </template>
 
           <template #item-alert.labels.alertname="item">
-            <div v-if="item.alert.labels.service != null" style="padding-left: 4px; border-left: 3px solid orange"> 
+            <div v-if="item.alert.labels.service != null" style="padding-left: 4px; border-left: 3px solid orange; text-align: center;">
               {{ item.alert.labels.service }}
             </div>
-            <div v-if="item.alert.labels.service == null">
+            <div v-if="item.alert.labels.service == null" style="text-align: center;">
               {{ item.alert.labels.alertname }}
             </div>
           </template>
 
           <template #item-alert.labels.team="item">
-            <div v-if="item.alert.labels.team != null">
+            <div v-if="item.alert.labels.team != null" style="text-align: center;">
               {{ item.alert.labels.team }}
             </div>
-            <div size="small" color="red" v-if="(item.alert.labels.team == null)" style="padding-left: 4px; border-left: 3px solid red">
+            <div size="small" color="red" v-if="(item.alert.labels.team == null)" style="padding-left: 4px; border-left: 3px solid red; text-align: center;">
               TEAM MISSING
             </div>
-          </template>    
+          </template>
 
 
 
           <template #item-alert.labels.gm_instance="item">
-            <div v-if="item.alert.labels.gm_instance != null && item.alert.annotations.gm_instance_from_am == null">
+            <div v-if="item.alert.labels.gm_instance != null && item.alert.annotations.gm_instance_from_am == null" style="text-align: center;">
               {{item.alert.labels.gm_instance}}
             </div>
-            <div v-if="item.alert.labels.gm_instance != null && item.alert.annotations.gm_instance_from_am == 'true'" 
-                style="padding-left: 4px; border-left: 3px solid orange">
+            <div v-if="item.alert.labels.gm_instance != null && item.alert.annotations.gm_instance_from_am == 'true'"
+                style="padding-left: 4px; border-left: 3px solid orange; text-align: center;">
               {{item.alert.labels.gm_instance}}
             </div>
-            <div v-if="item.alert.labels.gm_instance == null" 
-                style="padding-left: 4px; border-left: 3px solid red">
+            <div v-if="item.alert.labels.gm_instance == null"
+                style="padding-left: 4px; border-left: 3px solid red; text-align: center;">
               legacy
             </div>
           </template>
@@ -615,6 +646,16 @@
                 <v-icon small v-bind="props">mdi-dots-vertical</v-icon>
               </template>
               <v-card><v-list>
+                    <v-list-item>
+                      <v-btn
+                        value="DETAILS"
+                        small
+                        style="width: 75px;"
+                        color="purple"
+                        elevation=0
+                        @click="alertDetails.dialog=true;alertDetails.item=item;"
+                      >DETAILS</v-btn>
+                    </v-list-item>
                 <v-list-item v-if="item.status == 'NEW'" >
                       <v-btn 
                         value="ACK"
@@ -684,6 +725,7 @@
         </EasyDataTable>
       </v-expansion-panel-text>
     </v-expansion-panel>
+    </template>
 
   </v-expansion-panels>
 
@@ -707,5 +749,57 @@ li {
 }
 a {
   color: #42b983;
+}
+/* Center the header label for columns whose body cells are centered.
+   EasyDataTable's header-text-direction is table-wide, so we target
+   just these columns via a per-column class instead. */
+:deep(th.center-header .header) {
+  justify-content: center !important;
+}
+:deep(th.center-header .header > div) {
+  text-align: center;
+}
+
+/* Group headers styled as clean, modern expandable rows instead of
+   stacked grey blocks. */
+.group-panels {
+  gap: 4px;
+}
+:deep(.group-panels .v-expansion-panel) {
+  background: transparent;
+  margin-top: 4px;
+}
+:deep(.group-panels .v-expansion-panel::after) {
+  border: none;
+}
+:deep(.group-header) {
+  min-height: 36px !important;
+  padding: 4px 12px !important;
+  background: #f8fafc;
+  border: 1px solid #e5e9f0;
+  border-radius: 6px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+:deep(.group-header:hover) {
+  background: #eef2f7;
+}
+:deep(.v-expansion-panel-title--active.group-header) {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.group-chevron {
+  color: #64748b;
+  margin-right: 8px;
+  transition: transform 0.2s ease;
+}
+.group-chevron--open {
+  transform: rotate(90deg);
+}
+.group-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
 }
 </style>
