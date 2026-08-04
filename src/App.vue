@@ -70,18 +70,13 @@
   box-shadow: inset 4px 0 0 #90a4ae;
 }
 
-/* Freshly firing alerts: red for <=1 min, lighter red for <=10 min. */
-.customize-table tbody tr.firing-new-row td {
-  background-color: #fca5a5 !important;
-}
+/* Freshly firing alerts: left bar only (no row highlight — keeps text readable).
+   Red for <=1 min, orange for <=10 min. */
 .customize-table tbody tr.firing-new-row td:first-child {
   box-shadow: inset 4px 0 0 #dc2626;
 }
-.customize-table tbody tr.firing-recent-row td {
-  background-color: #fee2e2 !important;
-}
 .customize-table tbody tr.firing-recent-row td:first-child {
-  box-shadow: inset 4px 0 0 #f87171;
+  box-shadow: inset 4px 0 0 #f97316;
 }
 
 .v-expansion-panel-text__wrapper { padding: 0 !important; }

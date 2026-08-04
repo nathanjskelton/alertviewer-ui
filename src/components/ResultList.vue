@@ -606,7 +606,9 @@
           </template>
 
           <template #item-icon="item">
-            <div style="border: 0; display: flex; align-items: center; gap: 2px;">
+            <div style="border: 0; display: flex; align-items: center; gap: 2px; cursor: pointer;"
+                title="View details"
+                @click="alertDetails.item=item; alertDetails.dialog=true;">
               <v-icon v-if="isStale(item)" size="24" color="blue-grey-darken-1" class="mr-1"
                   title="Alertmanager offline — this alert may be stale">mdi-clock-alert</v-icon>
               <v-progress-circular v-if="item.status == 'NEW' && !isStale(item)" :rotate="0" :size="26" :width="2" bg-color="#ddd"
@@ -631,7 +633,7 @@
 
               <v-icon v-if="getExtraAnnotations(item).length > 0" size="24" color="#EAB308"
                   class="ml-3" style="cursor: pointer;" title="View annotations"
-                  @click="annotationsDialog.item=item; annotationsDialog.dialog=true;">mdi-note-text</v-icon>
+                  @click.stop="annotationsDialog.item=item; annotationsDialog.dialog=true;">mdi-note-text</v-icon>
             </div>
           </template>
 
