@@ -167,6 +167,9 @@ export default {
           let maxMs = 0;
           let newCount = 0;
           let staleCount = 0;
+          const sevSet = new Set();
+          const teamSet = new Set();
+          const gmSet = new Set();
           list.forEach(item => {
             if (this.isStale(item)) {
               staleCount++;
@@ -181,6 +184,12 @@ export default {
                 newCount++;
               }
             }
+            const sev = item.alert.labels.severity;
+            if (sev != null && sev !== "") sevSet.add(sev);
+            const team = item.alert.labels.team;
+            if (team != null && team !== "") teamSet.add(team);
+            const gm = item.alert.labels.gm_instance;
+            if (gm != null && gm !== "") gmSet.add(gm);
           });
           stats[key] = {
             total: list.length,
@@ -188,6 +197,9 @@ export default {
             firingFor: maxMs > 0 ? this.humanizeDuration(maxMs) : null,
             newCount: newCount,
             staleCount: staleCount,
+            severities: [...sevSet],
+            teams: [...teamSet],
+            gmInstances: [...gmSet],
           };
         });
         return stats;
@@ -511,13 +523,26 @@ export default {
       return hours + "h";
     },
     getSeverityColor(item) {
-      if (item.alert.labels.severity == "critical") {
+      return this.getSeverityColorByValue(item.alert.labels.severity);
+    },
+    getSeverityColorByValue(severity) {
+      if (severity == "critical") {
         return "red lighten-1";
       }
-      if (item.alert.labels.severity == "warning") {
+      if (severity == "warning") {
         return "orange lighten-1";
       }
       return "gray";
+    },
+    getGroupSeverityColor(severities) {
+      // Color the group by its highest severity (critical > warning > other).
+      if (severities != null && severities.includes("critical")) {
+        return this.getSeverityColorByValue("critical");
+      }
+      if (severities != null && severities.includes("warning")) {
+        return this.getSeverityColorByValue("warning");
+      }
+      return this.getSeverityColorByValue(null);
     },
     headerItemClassName(header) {
       // Center the header for columns whose body cells are centered

@@ -535,10 +535,25 @@
       <v-expansion-panel-title class="group-header" hide-actions>
         <template v-slot:default="{ expanded }">
             <v-icon size="small" class="group-chevron" :class="{ 'group-chevron--open': expanded }">mdi-chevron-right</v-icon>
-            <span class="group-title">
-              <template v-if="key == 'ALL'">Ungrouped</template>
-              <template v-else>{{ groupTitle(key) }}</template>
-            </span>
+            <div class="group-left">
+              <v-chip label size="small" variant="outlined" :color="getGroupSeverityColor(groupStats[key].severities)" class="font-weight-bold">
+                <span style="color: #000;">
+                  <template v-if="key == 'ALL'">Ungrouped</template>
+                  <template v-else>{{ groupTitle(key) }}</template>
+                </span>
+              </v-chip>
+              <v-chip v-for="sev in groupStats[key].severities" :key="'sev-' + sev" label size="x-small" :color="getSeverityColorByValue(sev)">
+                {{ sev }}
+              </v-chip>
+              <template v-if="showExtraLabels">
+                <v-chip v-for="team in groupStats[key].teams" :key="'team-' + team" label size="x-small" variant="tonal" :color="getLabelColor(team)" prepend-icon="mdi-account-group">
+                  {{ team }}
+                </v-chip>
+                <v-chip v-for="gm in groupStats[key].gmInstances" :key="'gm-' + gm" label size="x-small" variant="tonal" :color="getLabelColor(gm)" prepend-icon="mdi-server">
+                  {{ gm }}
+                </v-chip>
+              </template>
+            </div>
             <v-spacer></v-spacer>
             <v-chip v-if="groupStats[key].newCount > 0" size="x-small" label variant="flat" color="red" class="mr-2" prepend-icon="mdi-alert-decagram">
               {{ groupStats[key].newCount }} new
@@ -824,5 +839,14 @@ a {
   font-size: 13px;
   font-weight: 600;
   color: #334155;
+}
+/* Left side of the group header: name chip + distinct label chips, wrapping. */
+.group-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 </style>
