@@ -6,7 +6,6 @@
 	- Kim: 
 	- Becky: 
 - [ ] need to be able to keep alerts that "stopped alerting" in state so that they can be reviewed.
--
 
 ## Bugle
 
