@@ -29,7 +29,7 @@
       </v-menu>
 
       
-      <v-toolbar-title >GM Alert Viewer {{this.appVersion}}</v-toolbar-title>
+      <v-toolbar-title >Alert Viewer {{this.appVersion}}</v-toolbar-title>
       <v-spacer/>
       <table class="mr-5" style="border-left: 1px solid white;padding-left: 3px; font-size: small;"><tr><td>{{cortana_user.value}}:{{cortana_role.value}}</td></tr>
         <tr><td>{{this.appMode}} mode</td></tr></table>

@@ -96,8 +96,8 @@
   <v-navigation-drawer v-model="showDrawer" app color="purple-lighten-5" class="mt-5">
     <div class="px-2 mt-0">
       <v-btn width=250 height=50 @click="searchAlertName=null;searchTeam=null;searchInstance=null;searchSummary=null;
-          searchGmInstance=[];panel=[];groupField=null;searchSeverity=[];
-          gmInstances =[];statuses=['NEW','FLAPPING']" target="_blank" text style="background-color:rgba(0, 0, 0, 0.04);">
+          searchEnvironment=[];panel=[];groupField=null;searchSeverity=[];
+          environments =[];statuses=['NEW','FLAPPING']" target="_blank" text style="background-color:rgba(0, 0, 0, 0.04);">
         <span class="mr-2">Clear</span>
         <v-icon>mdi-notification-clear-all</v-icon>
       </v-btn>
@@ -176,14 +176,14 @@
 
                 <div style="font-size: 12px;margin-left: 20px;margin-top: 15px;"><span style="font-weight: bold"> Severity: </span> {{alertDetails.item.alert.labels.severity}}</div>
                 <div style="font-size: 12px;margin-left: 20px;"><span style="font-weight: bold"> Instance: </span> {{alertDetails.item.alert.labels.instance}}</div>
-                <div style="font-size: 12px;margin-left: 20px;"><span style="font-weight: bold"> GM: </span> {{alertDetails.item.alert.labels.gm_instance}}</div>
+                <div style="font-size: 12px;margin-left: 20px;"><span style="font-weight: bold"> Environment: </span> {{alertDetails.item.alert.labels.environment}}</div>
                 <div style="font-size: 12px;margin-left: 20px;"><span style="font-weight: bold"> Team: </span> {{alertDetails.item.alert.labels.team}}</div>
 
 
                 <div style="font-size: 14px;margin-left: 20px; margin-top: 15px;"><span style="font-weight: bold">Additional Labels</span></div>
                 <div v-for="value, label in alertDetails.item.alert.labels" class="mx-0 px-0">
                   <div v-if="label != 'instance'
-                        && label != 'gm_instance' && label != 'severity'
+                        && label != 'environment' && label != 'severity'
                         && label != 'alertname'" style="font-size: 12px;margin-left: 20px;" class="px-0"> <span style="color: #777; font-weight: bold">{{ label }}: </span> {{ value }} </div>
                 </div>
 
@@ -410,25 +410,25 @@
             <div>Severity</div>
           </template>
 
-          <template #header-alert.labels.gm_instance="header">
+          <template #header-alert.labels.environment="header">
             <v-dialog offset=-40 max-width="300" location-strategy="connected">
         
               <template v-slot:default="{ isActive }">
             
                   <v-select autofocus=true @keyup.enter="isActive.value=false" menu-icon="mdi-arrow-left-bold-circle" 
                       clearable=true @update:menu="isActive.value=false"  bg-color="white" 
-                      label="GM" menu density=compact multiple :items="gmInstances" v-model="searchGmInstance" @update:modelValue="this.setQueryString();">
+                      label="Environment" menu density=compact multiple :items="environments" v-model="searchEnvironment" @update:modelValue="this.setQueryString();">
                   </v-select>
           
               </template>
               <template v-slot:activator="{ props: activatorProps }">
-                <v-icon color="green" v-if="searchGmInstance != null && searchGmInstance.length > 0" 
+                <v-icon color="green" v-if="searchEnvironment != null && searchEnvironment.length > 0" 
                     v-bind="activatorProps">mdi-filter-check</v-icon>              
-                <v-icon color="#999" v-if="searchGmInstance == null || searchGmInstance.length == 0" v-bind="activatorProps">mdi-filter-off</v-icon>
+                <v-icon color="#999" v-if="searchEnvironment == null || searchEnvironment.length == 0" v-bind="activatorProps">mdi-filter-off</v-icon>
               </template>
             </v-dialog>
             
-            <div>GM</div>
+            <div>Environment</div>
           </template>
 
           <template #header-alert.labels.alertname="header">
@@ -549,7 +549,7 @@
                 <v-chip v-for="team in groupStats[key].teams" :key="'team-' + team" label size="x-small" variant="tonal" :color="getLabelColor(team)" prepend-icon="mdi-account-group">
                   {{ team }}
                 </v-chip>
-                <v-chip v-for="gm in groupStats[key].gmInstances" :key="'gm-' + gm" label size="x-small" variant="tonal" :color="getLabelColor(gm)" prepend-icon="mdi-server">
+                <v-chip v-for="gm in groupStats[key].environments" :key="'gm-' + gm" label size="x-small" variant="tonal" :color="getLabelColor(gm)" prepend-icon="mdi-server">
                   {{ gm }}
                 </v-chip>
               </template>
@@ -665,15 +665,15 @@
 
 
 
-          <template #item-alert.labels.gm_instance="item">
-            <div v-if="item.alert.labels.gm_instance != null && item.alert.annotations.gm_instance_from_am == null" style="text-align: center;">
-              {{item.alert.labels.gm_instance}}
+          <template #item-alert.labels.environment="item">
+            <div v-if="item.alert.labels.environment != null && item.alert.annotations.environment_from_am == null" style="text-align: center;">
+              {{item.alert.labels.environment}}
             </div>
-            <div v-if="item.alert.labels.gm_instance != null && item.alert.annotations.gm_instance_from_am == 'true'"
+            <div v-if="item.alert.labels.environment != null && item.alert.annotations.environment_from_am == 'true'"
                 style="padding-left: 4px; border-left: 3px solid orange; text-align: center;">
-              {{item.alert.labels.gm_instance}}
+              {{item.alert.labels.environment}}
             </div>
-            <div v-if="item.alert.labels.gm_instance == null"
+            <div v-if="item.alert.labels.environment == null"
                 style="padding-left: 4px; border-left: 3px solid red; text-align: center;">
               legacy
             </div>

@@ -83,13 +83,13 @@ export default {
       statuses: ['NEW'],
       sessionId: null,
       logTypes: [],
-      gmInstances: [],
+      environments: [],
       search: "",
       groupField: null,
       allFields: [],
       selected: [],
       searchSeverity: [],
-      searchGmInstance: [],
+      searchEnvironment: [],
       searchAlertName: null,
       searchInstance: null,
       searchTeam: null,
@@ -188,7 +188,7 @@ export default {
             if (sev != null && sev !== "") sevSet.add(sev);
             const team = item.alert.labels.team;
             if (team != null && team !== "") teamSet.add(team);
-            const gm = item.alert.labels.gm_instance;
+            const gm = item.alert.labels.environment;
             if (gm != null && gm !== "") gmSet.add(gm);
           });
           stats[key] = {
@@ -199,7 +199,7 @@ export default {
             staleCount: staleCount,
             severities: [...sevSet],
             teams: [...teamSet],
-            gmInstances: [...gmSet],
+            environments: [...gmSet],
           };
         });
         return stats;
@@ -234,10 +234,10 @@ export default {
           filterable: false,
         },
         {
-          text: "GM",
+          text: "Environment",
           align: "center",
           sortable: true,
-          value: "alert.labels.gm_instance",
+          value: "alert.labels.environment",
           filterable: false,
         },
         {
@@ -324,7 +324,7 @@ export default {
         }
       }
     },
-    searchGmInstance: {
+    searchEnvironment: {
       handler() {
         if (this.autoRefresh) {
           this.fetchData();
@@ -372,10 +372,10 @@ export default {
         this.searchSummary = this.query.srchSmy;
       }
 
-      if (this.query.gmInstances != null && Array.isArray(this.query.gmInstances)) {
-        this.searchGmInstance = this.query.gmInstances;
-      } else if (this.query.gmInstances) {
-        this.searchGmInstance = [ this.query.gmInstances ];
+      if (this.query.environments != null && Array.isArray(this.query.environments)) {
+        this.searchEnvironment = this.query.environments;
+      } else if (this.query.environments) {
+        this.searchEnvironment = [ this.query.environments ];
       }
 
       if (this.query.statuses != null && Array.isArray(this.query.statuses)) {
@@ -550,7 +550,7 @@ export default {
       const centered = [
         "alert.startsAt",
         "alert.labels.severity",
-        "alert.labels.gm_instance",
+        "alert.labels.environment",
         "alert.labels.alertname",
         "alert.labels.instance",
         "alert.labels.team",
@@ -560,7 +560,7 @@ export default {
     getExtraLabels(item) {
       // Labels that already have their own column are skipped; everything
       // else is surfaced as a chip below the row.
-      const skipLabels = ["severity", "gm_instance", "alertname", "instance", "team", "service"];
+      const skipLabels = ["severity", "environment", "alertname", "instance", "team", "service"];
       let tags = [];
       let labels = (item.alert && item.alert.labels) || {};
       Object.keys(labels).forEach(k => {
@@ -572,7 +572,7 @@ export default {
     },
     getExtraAnnotations(item) {
       // Annotations other than the ones shown/used in columns.
-      const skipAnnotations = ["summary", "service", "gm_instance_from_am"];
+      const skipAnnotations = ["summary", "service", "environment_from_am"];
       let tags = [];
       let annotations = (item.alert && item.alert.annotations) || {};
       Object.keys(annotations).forEach(k => {
@@ -786,7 +786,7 @@ export default {
       this.currentJira.id = "cortana:" + item.alert.fingerprint;
       this.currentJira.description = item.alert.annotations.summary;
       this.currentJira.summary = "Cortana: " + item.alert.labels.alertname;
-      this.currentJira.system = item.alert.labels.gm_instance;
+      this.currentJira.system = item.alert.labels.environment;
       this.jira.dialog = true;
     },
     saveJira() {
@@ -818,7 +818,7 @@ export default {
           srchSmy: this.searchSummary,
           srchTm: this.searchTeam,
           statuses: this.statuses,
-          gmInstances: this.searchGmInstance,
+          environments: this.searchEnvironment,
           groupField: this.groupField,
           autoRefresh: this.autoRefresh,
           showLabels: this.showExtraLabels,
@@ -898,8 +898,8 @@ export default {
       }
 
 
-      if (this.searchGmInstance != null && this.searchGmInstance.length > 0) {
-        urlString = urlString + delim + "gmInstances=" + this.searchGmInstance;
+      if (this.searchEnvironment != null && this.searchEnvironment.length > 0) {
+        urlString = urlString + delim + "environments=" + this.searchEnvironment;
         delim = "&";
       }
 
@@ -928,9 +928,9 @@ export default {
             this.payload.severities.forEach(value => {
               this.logTypes.push(value);
             })
-            this.gmInstances = []
+            this.environments = []
             this.payload.instances.forEach(value => {
-              this.gmInstances.push(value);
+              this.environments.push(value);
             })
             this.payload.allFields.forEach(value => {
               this.allFields.push(value);
