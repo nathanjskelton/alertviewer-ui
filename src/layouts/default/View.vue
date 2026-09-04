@@ -2,12 +2,17 @@
   <v-main >
     <router-view @alertManagerStatus="setAlertManagers" @alerts="setAlerts" @alert="setAlert"  @status="setStatus" 
         @token="setToken" @user="setUser" @role="setRole"  @lastIngest="setLastIngest" @banner="setBanner"
-        :cortana_token=this.cortana_token :cortana_user=this.cortana_user :cortana_role=this.cortana_role />
+        @alertIntervals="setAlertIntervals"
+        :cortana_token=this.cortana_token :cortana_user=this.cortana_user :cortana_role=this.cortana_role
+        :timeline_selection="timeline_selection" @closeTimeline="$emit('closeTimeline')" />
   </v-main>
 </template>
 
 <script>
   export default {
+    props: {
+      timeline_selection: Object,
+    },
     data() {
       return {
         cortana_token: '',
@@ -46,8 +51,11 @@
       setAlertManagers(ams) {
         this.$emit('alertManagerStatus', ams);
       },
+      setAlertIntervals(intervals) {
+        this.$emit('alertIntervals', intervals);
+      },
     },
-    emits: ['alerts','alert','status','token','user','role','alertManagerStatus','lastIngest'],
+    emits: ['alerts','alert','status','token','user','role','alertManagerStatus','lastIngest','alertIntervals','closeTimeline'],
   }
 
 </script>

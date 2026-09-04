@@ -11,7 +11,8 @@
     
     </v-container>
     <app-bar :cortana_user=getUser() :cortana_role=getRole() />
-    <default-view @alertManagerStatus="setAlertManagers" 
+    <default-view @alertManagerStatus="setAlertManagers" @alertIntervals="setAlertIntervals"
+      :timeline_selection="timelineSelection" @closeTimeline="timelineSelection = null"
       @alerts="setAlerts" @alert="setAlert" @banner="setBanner" @status="setStatus" @lastIngest="setLastIngest" @user="setUser" @role="setRole" />
     
     <v-footer app class="ma-0 pa-0">
@@ -20,6 +21,12 @@
         <v-col class="ma-0 pa-0">
         <v-alert v-bind:key="item.message" v-for="item in alerts" v-model="alerts" transition="fade-transition" :type="item.type" rounded>{{ item.message }}</v-alert>
         <v-alert v-model="showAlert" transition="fade-transition" :type="alertType" rounded>{{ alert }}</v-alert>
+        </v-col>
+      </v-row>
+      <!-- 24h firing history, one bar per minute, coloured by worst severity. -->
+      <v-row dense>
+        <v-col class="ma-0 pa-0">
+        <alert-timeline :intervals="alertIntervals" v-model:selection="timelineSelection" />
         </v-col>
       </v-row>
       <v-row dense >
@@ -51,6 +58,7 @@
   
   import AppBar from './AppBar.vue'
   import DefaultView from './View.vue'
+  import AlertTimeline from '@/components/AlertTimeline.vue'
   import axios from "axios";
   import { ref } from 'vue'
 
@@ -70,6 +78,8 @@
   const banner = ref('');
   
   const alertManagerStatus = ref('');
+  const alertIntervals = ref([]);
+  const timelineSelection = ref(null);
 
   function getUser() {
     return user;
@@ -115,6 +125,10 @@
 
   function setRole(x) {
     role.value = x;
+  }
+
+  function setAlertIntervals(x) {
+    alertIntervals.value = x;
   }
 
   function setAlertManagers(ams) {

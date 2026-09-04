@@ -374,6 +374,17 @@
   </v-toolbar> 
   -->
 
+  <!-- Scrubbing the footer timeline swaps the table out for the gantt view. -->
+  <alert-gantt
+    v-if="timeline_selection != null"
+    :items="selectionRows"
+    :start="timeline_selection.start"
+    :end="timeline_selection.end"
+    @close="$emit('closeTimeline')"
+  />
+
+  <template v-else>
+
   <!-- Single shared column header (with filters) for all groups -->
   <EasyDataTable
     class="master-header-root"
@@ -768,6 +779,8 @@
     </template>
 
   </v-expansion-panels>
+
+  </template>
 
 </template>
 

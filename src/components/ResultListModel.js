@@ -1,8 +1,10 @@
 import axios from "axios";
 import { useRouter, useRoute } from 'vue-router';
 import { ref, computed } from 'vue';
+import AlertGantt from './AlertGantt.vue';
 
 export default {
+  components: { AlertGantt },
   
   setup() {
     const dataTable = ref([]);
@@ -20,11 +22,54 @@ export default {
     cortana_token: String,
     cortana_user: String,
     cortana_role: String,
+    timeline_selection: Object,
   },
   computed: {
-    
+    // Firing windows for the footer timeline, one entry per alert on screen.
+    // end == null means "still firing", so the graph can extend the bar to its
+    // own idea of now instead of the moment this was last recomputed.
+    alertIntervals() {
+      const windowStart = Date.now() - 24 * 60 * 60 * 1000;
+      const out = [];
+      this.eachVisibleAlert((item, firing) => {
+        if (firing.end != null && firing.end < windowStart) {
+          return;
+        }
+        out.push({ start: firing.start, end: firing.end, severity: item.alert.labels.severity });
+      });
+      return out;
+    },
+    // Rows for the gantt view: every alert that was firing at any point inside
+    // the window scrubbed on the footer timeline, oldest first.
+    selectionRows() {
+      const selection = this.timeline_selection;
+      if (selection == null) {
+        return [];
+      }
+      const now = Date.now();
+      const rows = [];
+      this.eachVisibleAlert((item, firing) => {
+        const end = firing.end == null ? now : firing.end;
+        if (firing.start > selection.end || end < selection.start) {
+          return;
+        }
+        rows.push({
+          id: item.id,
+          alertname: item.alert.labels.alertname,
+          environment: item.alert.labels.environment,
+          instance: item.alert.labels.instance,
+          severity: item.alert.labels.severity,
+          summary: this.getSummaryHeader(item.alert.labels.alertname, item.alert.annotations.summary),
+          status: item.status,
+          start: firing.start,
+          end: firing.end,
+        });
+      });
+      rows.sort((a, b) => a.start - b.start);
+      return rows;
+    }
   },
-  emits: ['alerts','alert','status','token','user','role','banner','alertManagerStatus','lastIngest'],
+  emits: ['alerts','alert','status','token','user','role','banner','alertManagerStatus','lastIngest','alertIntervals','closeTimeline'],
   data() {
     return {
       rowsPerPage: null,
@@ -280,6 +325,12 @@ export default {
     };
   },
   watch: {
+    alertIntervals: {
+      immediate: true,
+      handler(value) {
+        this.$emit("alertIntervals", value);
+      }
+    },
     expandMode: {
       handler() {
         this.setPanel(true);
@@ -635,6 +686,39 @@ export default {
         }
       }
       return "";
+    },
+    // The window an alert was actually firing for. end == null means "still
+    // firing". Both halves of the record matter: a RESOLVED entry has stopped
+    // firing even though alertmanager left endsAt in the future (it is pushed
+    // out by the resolve timeout while an alert is active, or parked at the
+    // zero date), and an endsAt already in the past means the alert stopped
+    // whatever status the viewer still carries for it.
+    firingWindow(item) {
+      const start = new Date(item.alert.startsAt).getTime();
+      if (isNaN(start)) {
+        return null;
+      }
+      const now = Date.now();
+      const end = new Date(item.alert.endsAt).getTime();
+      const ended = isNaN(end) || end <= start ? null : Math.min(end, now);
+      if (item.status == "RESOLVED") {
+        return { start: start, end: ended == null ? now : ended };
+      }
+      return { start: start, end: ended != null && ended < now ? ended : null };
+    },
+    // Walk every alert the table is currently showing, in group order, with its
+    // firing window resolved. Shared by the timeline graph and the gantt view so
+    // the two can never disagree about what is on screen.
+    eachVisibleAlert(callback) {
+      Object.keys(this.info).forEach(key => {
+        const group = this.info[key];
+        this.applyClientFilters(group.list || []).forEach(item => {
+          const firing = this.firingWindow(item);
+          if (firing != null) {
+            callback(item, firing);
+          }
+        });
+      });
     },
     applyClientFilters(list) {
       // Mirror the EasyDataTable filterOptions so header stats match the
