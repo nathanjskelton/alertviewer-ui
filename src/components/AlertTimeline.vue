@@ -7,12 +7,18 @@
 
 <script>
   import { markRaw } from 'vue'
+  import { bucketMs, gridMs, formatSpan, formatStamp } from './timelineWindow'
 
-  // One bar per minute for the last 24 hours.
-  const MINUTES = 24 * 60
   const HEIGHT = 26
   // Below this a drag is treated as a click (i.e. clear the selection).
   const DRAG_SLOP = 3
+
+  // Redraw cadence, so the window keeps sliding even when no new data arrives.
+  // Tied to the bucket size: at five minutes' zoom a bucket is a second wide and
+  // a stale graph is obvious, at a week it is ten minutes and redrawing often
+  // would be pointless work.
+  const MIN_REFRESH_MS = 2000
+  const MAX_REFRESH_MS = 30000
 
   const COLOR_CRITICAL = '#dc2626'
   const COLOR_WARNING = '#f59e0b'
@@ -30,6 +36,12 @@
       selection: {
         type: Object,
         default: null
+      },
+      // How much history the graph covers, in minutes. Driven by the zoom
+      // control; everything below is derived from it.
+      windowMinutes: {
+        type: Number,
+        default: 1440
       }
     },
     emits: ['update:selection'],
@@ -39,6 +51,20 @@
         stats: null,
         drag: null,
       }
+    },
+    computed: {
+      bucketMs() {
+        return bucketMs(this.windowMinutes)
+      },
+      buckets() {
+        return Math.round(this.windowMinutes * 60000 / this.bucketMs)
+      },
+      gridMs() {
+        return gridMs(this.windowMinutes)
+      },
+      spanMs() {
+        return this.buckets * this.bucketMs
+      },
     },
     watch: {
       intervals: {
@@ -50,6 +76,22 @@
         handler() {
           this.draw()
         }
+      },
+      windowMinutes: {
+        handler() {
+          // A selection made at one zoom level can fall entirely outside the
+          // next, which would leave the gantt showing a window the graph no
+          // longer draws. Drop it rather than leave the two disagreeing.
+          const selection = this.selection
+          if (selection != null) {
+            const start = Date.now() - this.windowMinutes * 60000
+            if (selection.end < start) {
+              this.$emit('update:selection', null)
+            }
+          }
+          this.restartTimer()
+          this.rebuild()
+        }
       }
     },
     mounted() {
@@ -60,8 +102,7 @@
       } else {
         window.addEventListener('resize', this.draw)
       }
-      // Slide the window forward even when no new data has arrived.
-      this.timer = setInterval(() => this.rebuild(), 30000)
+      this.restartTimer()
     },
     beforeUnmount() {
       if (this.observer) { this.observer.disconnect() } else { window.removeEventListener('resize', this.draw) }
@@ -69,6 +110,11 @@
       this.detachDragListeners()
     },
     methods: {
+      restartTimer() {
+        clearInterval(this.timer)
+        const every = Math.min(MAX_REFRESH_MS, Math.max(MIN_REFRESH_MS, this.bucketMs))
+        this.timer = setInterval(() => this.rebuild(), every)
+      },
       severityRank(severity) {
         let s = (severity == null ? '' : String(severity)).toLowerCase()
         if (s == 'critical' || s == 'crit' || s == 'fatal' || s == 'emergency' || s == 'page') {
@@ -79,67 +125,100 @@
         }
         return 2
       },
-      // Bucket the firing intervals into one count per minute, split by severity
-      // class. Built with a difference array so cost is O(alerts + minutes)
-      // rather than O(alerts * minutes-firing).
+      // Bucket the firing intervals into one count per bucket, split by
+      // severity class. Built with a difference array so cost is O(alerts +
+      // buckets) rather than O(alerts * buckets-firing).
       rebuild() {
         const nowMs = Date.now()
-        const lastMinute = Math.floor(nowMs / 60000)
-        const firstMinute = lastMinute - (MINUTES - 1)
+        const size = this.bucketMs
+        const count = this.buckets
+        const lastBucket = Math.floor(nowMs / size)
+        const firstBucket = lastBucket - (count - 1)
 
-        // One extra slot so an interval ending on the last minute can close.
+        // One extra slot so an interval ending on the last bucket can close.
         const diffs = [
-          new Int32Array(MINUTES + 1),
-          new Int32Array(MINUTES + 1),
-          new Int32Array(MINUTES + 1),
+          new Int32Array(count + 1),
+          new Int32Array(count + 1),
+          new Int32Array(count + 1),
         ]
 
         this.intervals.forEach(item => {
           if (item == null || item.start == null) { return }
-          let from = Math.floor(item.start / 60000)
-          let to = Math.floor((item.end == null ? nowMs : item.end) / 60000)
+          let from = Math.floor(item.start / size)
+          let to = Math.floor((item.end == null ? nowMs : item.end) / size)
           if (to < from) { to = from }
-          if (to < firstMinute || from > lastMinute) { return }
-          if (from < firstMinute) { from = firstMinute }
-          if (to > lastMinute) { to = lastMinute }
+          if (to < firstBucket || from > lastBucket) { return }
+          if (from < firstBucket) { from = firstBucket }
+          if (to > lastBucket) { to = lastBucket }
           const diff = diffs[this.severityRank(item.severity)]
-          diff[from - firstMinute]++
-          diff[to - firstMinute + 1]--
+          diff[from - firstBucket]++
+          diff[to - firstBucket + 1]--
         })
 
-        const counts = [new Int32Array(MINUTES), new Int32Array(MINUTES), new Int32Array(MINUTES)]
+        const counts = [new Int32Array(count), new Int32Array(count), new Int32Array(count)]
         let peak = 0
         for (let rank = 0; rank < 3; rank++) {
           let running = 0
-          for (let i = 0; i < MINUTES; i++) {
+          for (let i = 0; i < count; i++) {
             running += diffs[rank][i]
             counts[rank][i] = running
           }
         }
-        for (let i = 0; i < MINUTES; i++) {
+        for (let i = 0; i < count; i++) {
           const total = counts[0][i] + counts[1][i] + counts[2][i]
           if (total > peak) { peak = total }
         }
 
-        this.stats = markRaw({ counts, peak, firstMinute })
+        this.stats = markRaw({ counts, peak, firstBucket, size, count })
         this.draw()
       },
-      // Pixel <-> time helpers. The graph always covers [firstMinute, +24h).
+      // Pixel <-> time helpers. The graph always covers
+      // [firstBucket, +windowMinutes).
       windowStartMs() {
-        return this.stats == null ? null : this.stats.firstMinute * 60000
+        return this.stats == null ? null : this.stats.firstBucket * this.stats.size
       },
       msToX(ms, width) {
         const from = this.windowStartMs()
-        let x = (ms - from) / (MINUTES * 60000) * width
+        let x = (ms - from) / (this.stats.count * this.stats.size) * width
         if (x < 0) { x = 0 }
         if (x > width) { x = width }
         return x
       },
       indexAtX(x, width) {
-        let index = Math.floor(x / width * MINUTES)
+        const count = this.stats.count
+        let index = Math.floor(x / width * count)
         if (index < 0) { index = 0 }
-        if (index > MINUTES - 1) { index = MINUTES - 1 }
+        if (index > count - 1) { index = count - 1 }
         return index
+      },
+      // Gridlines on round clock times rather than on the window's ragged edge,
+      // which is what lets the eye read "that spike was around midnight".
+      // Anchored to local midnight because every step divides a day evenly, so
+      // stepping from there keeps hour and day lines on the hour and the day.
+      gridTicks(startMs, endMs) {
+        const step = this.gridMs
+        const anchor = new Date(startMs)
+        anchor.setHours(0, 0, 0, 0)
+        // Jump straight to the first multiple inside the window rather than
+        // stepping up to it -- at five minutes' zoom the anchor is most of a day
+        // behind the window.
+        const base = anchor.getTime()
+        const first = base + Math.ceil((startMs - base) / step) * step
+        const out = []
+        for (let ms = first; ms <= endMs; ms += step) {
+          const at = new Date(ms)
+          let major
+          if (step < 3600000) {
+            major = at.getMinutes() == 0
+          } else if (step < 86400000) {
+            major = at.getHours() == 0
+          } else {
+            major = at.getDay() == 1
+          }
+          out.push({ ms, major })
+          if (out.length > 200) { break }
+        }
+        return out
       },
       draw() {
         const wrap = this.$refs.wrap
@@ -161,26 +240,28 @@
         ctx.fillStyle = '#f1f5f9'
         ctx.fillRect(0, 0, width, HEIGHT)
 
-        // Hour ticks, emphasised every 6 hours.
-        for (let minute = 0; minute <= MINUTES; minute += 60) {
-          ctx.fillStyle = (minute % 360 == 0) ? '#cbd5e1' : '#e5eaf0'
-          ctx.fillRect(Math.round(minute / MINUTES * width), 0, 1, HEIGHT)
+        const stats = this.stats
+        if (stats != null) {
+          const startMs = this.windowStartMs()
+          this.gridTicks(startMs, startMs + stats.count * stats.size).forEach(tick => {
+            ctx.fillStyle = tick.major ? '#cbd5e1' : '#e5eaf0'
+            ctx.fillRect(Math.round(this.msToX(tick.ms, width)), 0, 1, HEIGHT)
+          })
         }
 
-        const stats = this.stats
         if (stats == null || stats.peak == 0) {
           ctx.fillStyle = '#cbd5e1'
           ctx.fillRect(0, HEIGHT - 1, width, 1)
-          this.drawSelection(ctx, width)
+          if (stats != null) { this.drawSelection(ctx, width) }
           return
         }
 
         const counts = stats.counts
-        for (let i = 0; i < MINUTES; i++) {
+        for (let i = 0; i < stats.count; i++) {
           const total = counts[0][i] + counts[1][i] + counts[2][i]
           if (total == 0) { continue }
-          const x0 = Math.floor(i / MINUTES * width)
-          const x1 = Math.max(x0 + 1, Math.floor((i + 1) / MINUTES * width))
+          const x0 = Math.floor(i / stats.count * width)
+          const x1 = Math.max(x0 + 1, Math.floor((i + 1) / stats.count * width))
           const barHeight = Math.max(1, Math.round(total / stats.peak * (HEIGHT - 1)))
           ctx.fillStyle = counts[0][i] > 0 ? COLOR_CRITICAL : (counts[1][i] > 0 ? COLOR_WARNING : COLOR_OTHER)
           ctx.fillRect(x0, HEIGHT - barHeight, x1 - x0, barHeight)
@@ -228,14 +309,19 @@
       },
       rangeForIndexes(from, to) {
         const windowStart = this.windowStartMs()
+        const size = this.stats.size
         return {
-          start: windowStart + from * 60000,
-          end: windowStart + (to + 1) * 60000 - 1,
+          start: windowStart + from * size,
+          end: windowStart + (to + 1) * size - 1,
         }
       },
-      formatTime(ms) {
-        const at = new Date(ms)
-        return ('0' + at.getHours()).slice(-2) + ':' + ('0' + at.getMinutes()).slice(-2)
+      stamp(ms) {
+        return formatStamp(ms, this.windowMinutes)
+      },
+      duration(ms) {
+        const seconds = Math.round(ms / 1000)
+        if (seconds < 60) { return seconds + ' sec' }
+        return formatSpan(seconds / 60)
       },
       xInWrap(event) {
         return event.clientX - this.$refs.wrap.getBoundingClientRect().left
@@ -261,10 +347,10 @@
         if (Math.abs(x - this.drag.fromX) >= DRAG_SLOP) { this.drag.moved = true }
         this.drag.toIndex = this.indexAtX(x, width)
         const range = this.dragRange()
-        const minutes = Math.round((range.end + 1 - range.start) / 60000)
         this.tip = {
           left: Math.min(Math.max(x, 80), width - 80),
-          label: this.formatTime(range.start) + ' – ' + this.formatTime(range.end) + ' · ' + minutes + ' min',
+          label: this.stamp(range.start) + ' – ' + this.stamp(range.end) + ' · ' +
+            this.duration(range.end + 1 - range.start),
         }
         this.draw()
       },
@@ -313,7 +399,7 @@
 
         this.tip = {
           left: Math.min(Math.max(x, 80), width - 80),
-          label: this.formatTime((stats.firstMinute + index) * 60000) + ' · ' + total + ' firing' +
+          label: this.stamp((stats.firstBucket + index) * stats.size) + ' · ' + total + ' firing' +
             (breakdown.length > 0 ? ' (' + breakdown.join(', ') + ')' : '') + ' — drag to inspect',
         }
       },

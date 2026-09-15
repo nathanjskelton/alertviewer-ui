@@ -52,8 +52,10 @@
   const COLOR_WARNING = '#f59e0b'
   const COLOR_OTHER = '#94a3b8'
 
-  // Candidate axis steps, in minutes, from a minute up to six hours.
-  const STEPS = [1, 2, 5, 10, 15, 30, 60, 120, 180, 360]
+  // Candidate axis steps, in minutes, from a minute up to two days. The
+  // timeline can be scrubbed across a whole week, so the top of this range has
+  // to reach far enough that a wide selection still snaps to ~8 ticks.
+  const STEPS = [1, 2, 5, 10, 15, 30, 60, 120, 180, 360, 720, 1440, 2880]
 
   export default {
     name: 'AlertGantt',
@@ -77,7 +79,15 @@
         if (minutes < 60) { return minutes + ' min' }
         const hours = Math.floor(minutes / 60)
         const rest = minutes % 60
-        return hours + 'h' + (rest > 0 ? ' ' + rest + 'm' : '')
+        if (hours < 48) { return hours + 'h' + (rest > 0 ? ' ' + rest + 'm' : '') }
+        const days = Math.floor(hours / 24)
+        const restHours = hours % 24
+        return days + 'd' + (restHours > 0 ? ' ' + restHours + 'h' : '')
+      },
+      // Once the selection covers more than a day the bare clock labels repeat,
+      // so the axis switches to weekday-qualified ticks.
+      multiDay() {
+        return this.span > 24 * 3600000
       },
       // Aim for roughly eight labelled ticks, snapped to a readable step and
       // aligned to the clock rather than to the selection's ragged edge.
@@ -90,7 +100,11 @@
         const stepMs = step * 60000
         const out = []
         for (let ms = Math.ceil(this.start / stepMs) * stepMs; ms <= this.end; ms += stepMs) {
-          out.push({ ms: ms, pct: (ms - this.start) / this.span * 100, label: this.formatTime(ms) })
+          out.push({
+            ms: ms,
+            pct: (ms - this.start) / this.span * 100,
+            label: this.multiDay ? this.formatDayTime(ms) : this.formatTime(ms),
+          })
         }
         return out
       },
@@ -124,6 +138,12 @@
       formatTime(ms) {
         const at = new Date(ms)
         return ('0' + at.getHours()).slice(-2) + ':' + ('0' + at.getMinutes()).slice(-2)
+      },
+      formatDayTime(ms) {
+        const at = new Date(ms)
+        const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][at.getDay()]
+        // Midnight ticks carry the day on its own; the clock adds nothing.
+        return at.getHours() == 0 && at.getMinutes() == 0 ? day : day + ' ' + this.formatTime(ms)
       },
       formatStamp(ms) {
         const at = new Date(ms)

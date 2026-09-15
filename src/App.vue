@@ -48,7 +48,10 @@
   width: 100%;
 }
 .customize-table th:nth-child(1), .customize-table td:nth-child(1) { width: 40px; }
-.customize-table th:nth-child(2), .customize-table td:nth-child(2) { width: 76px; }
+/* Indicator column: must fit the status indicator plus the annotations and
+   jira icons side by side, or the icons get squashed out of sight. Worst case
+   is a flapping row (two status icons) carrying both: ~111px of content. */
+.customize-table th:nth-child(2), .customize-table td:nth-child(2) { width: 136px; }
 .customize-table th:nth-child(3), .customize-table td:nth-child(3) { width: 90px; }
 .customize-table th:nth-child(4), .customize-table td:nth-child(4) { width: 96px; }
 .customize-table th:nth-child(5), .customize-table td:nth-child(5) { width: 84px; }
@@ -56,6 +59,13 @@
 .customize-table th:nth-child(7), .customize-table td:nth-child(7) { width: 150px; }
 .customize-table th:nth-child(8), .customize-table td:nth-child(8) { width: 110px; }
 /* column 9 (Summary) intentionally left auto to take the remaining width */
+
+/* The column widths above are descendant selectors, so they also hit the cells
+   of any table nested inside a body cell -- the indicator cell draws a small
+   one -- stretching it to the width of columns 1 and 2 and pushing whatever
+   follows out of sight. Keep nested tables at their natural size. */
+.customize-table td table { table-layout: auto; width: auto; border-spacing: 0; }
+.customize-table td table td { width: auto !important; padding: 0; }
 
 /* The shared header table carries no rows of its own — hide its empty body
    and the "No Available Data" placeholder so only the header row shows. */

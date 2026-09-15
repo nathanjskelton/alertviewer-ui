@@ -1,6 +1,11 @@
 <template>
   <v-app>
-    <v-container fluid class="ma-0 pa-0">
+    <!-- The classification banner has to stay on screen. It used to sit in normal
+         flow, so on any page long enough to scroll it slid away and page content
+         showed through the strip above the toolbars. Fixed at the top instead,
+         under the app bars (z 1008/1010) so they still overlap it exactly as
+         before, with a spacer below keeping the rest of the layout where it was. -->
+    <v-container fluid class="ma-0 pa-0 banner-fixed">
 
     <v-row dense >
       <v-col class="ma-0 pa-0">
@@ -10,10 +15,11 @@
     </v-row>
     
     </v-container>
+    <div style="height: 30px;"></div>
     <app-bar :cortana_user=getUser() :cortana_role=getRole() />
     <default-view @alertManagerStatus="setAlertManagers" @alertIntervals="setAlertIntervals"
       :timeline_selection="timelineSelection" @closeTimeline="timelineSelection = null"
-      @alerts="setAlerts" @alert="setAlert" @banner="setBanner" @status="setStatus" @lastIngest="setLastIngest" @user="setUser" @role="setRole" />
+      @alerts="setAlerts" @alert="setAlert" @banner="setBanner" @retention="setRetention" @status="setStatus" @lastIngest="setLastIngest" @user="setUser" @role="setRole" />
     
     <v-footer app class="ma-0 pa-0">
       <v-container fluid class="ma-0 pa-0">
@@ -23,10 +29,15 @@
         <v-alert v-model="showAlert" transition="fade-transition" :type="alertType" rounded>{{ alert }}</v-alert>
         </v-col>
       </v-row>
-      <!-- 24h firing history, one bar per minute, coloured by worst severity. -->
-      <v-row dense>
+      <!-- Firing history over the zoom control's span, coloured by worst
+           severity. The zoom only resizes this graph; scrubbing inside it still
+           drives the gantt. -->
+      <v-row dense class="flex-nowrap align-center">
+        <v-col cols="auto" class="ma-0 pa-0">
+        <alert-timeline-zoom v-model="timelineZoom" :retention-minutes="retentionMinutes" />
+        </v-col>
         <v-col class="ma-0 pa-0">
-        <alert-timeline :intervals="alertIntervals" v-model:selection="timelineSelection" />
+        <alert-timeline :intervals="alertIntervals" :window-minutes="timelineZoom" v-model:selection="timelineSelection" />
         </v-col>
       </v-row>
       <v-row dense >
@@ -59,6 +70,8 @@
   import AppBar from './AppBar.vue'
   import DefaultView from './View.vue'
   import AlertTimeline from '@/components/AlertTimeline.vue'
+  import AlertTimelineZoom from '@/components/AlertTimelineZoom.vue'
+  import { DEFAULT_RETENTION_MINUTES, nearestStop } from '@/components/timelineWindow'
   import axios from "axios";
   import { ref } from 'vue'
 
@@ -78,6 +91,11 @@
   const banner = ref('');
   
   const alertManagerStatus = ref('');
+
+  // The graph opens showing everything the backend still holds; the zoom
+  // control narrows it from there. Both are minutes.
+  const retentionMinutes = ref(DEFAULT_RETENTION_MINUTES);
+  const timelineZoom = ref(DEFAULT_RETENTION_MINUTES);
   const alertIntervals = ref([]);
   const timelineSelection = ref(null);
 
@@ -114,6 +132,16 @@
     console.log("Default setBanner: "+x);
   }
 
+  function setRetention(x) {
+    const minutes = Number(x);
+    if (!isFinite(minutes) || minutes <= 0) { return; }
+    const wasAtMax = timelineZoom.value == retentionMinutes.value;
+    retentionMinutes.value = minutes;
+    // Keep "showing everything" meaning everything once the real retention
+    // lands, and otherwise snap to a stop the new ladder actually offers.
+    timelineZoom.value = wasAtMax ? minutes : nearestStop(timelineZoom.value, minutes);
+  }
+
   function setLastIngest(x) {
     lastIngest.value = x;
   }
@@ -137,3 +165,13 @@
     alertManagerStatus.value = ams;
   }
 </script>
+
+<style>
+.banner-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1005;
+}
+</style>

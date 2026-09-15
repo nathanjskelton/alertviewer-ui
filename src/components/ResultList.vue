@@ -125,7 +125,9 @@
 
       <v-card class="mt-2 px-2" style="background-color:rgba(0, 0, 0, 0.04);" >
         <v-card-title style="max-height: 45px" class="caption">Attributes</v-card-title>
-        <v-checkbox style="margin-bottom: 10px; max-height: 45px" hide-details dense v-model="statuses" label="FLAPPING" value="FLAPPING" append-icon="mdi-sync-alert"></v-checkbox>
+        <v-checkbox style="max-height: 45px" hide-details dense v-model="statuses" label="FLAPPING" value="FLAPPING" append-icon="mdi-sync-alert"></v-checkbox>
+        <v-checkbox style="margin-bottom: 10px; max-height: 45px" hide-details dense v-model="notCallin" label="NOT CALLIN" append-icon="mdi-phone"
+            title="Ticked: show every alert. Unticked: only alerts whose callin label is true or 1."></v-checkbox>
       </v-card>
 
     </div>
@@ -135,11 +137,13 @@
   <!-- DIALOGS -->
 
   <v-dialog max-width="90%" v-model="alertDetails.dialog" persistent >
-    <v-card class="pa-3">
+    <v-card class="pa-3" v-if="alertDetails.item != null">
       <v-card-title class="pa-4" style="background-color: purple; color: white; font-size: large; font-weight: bold;">
         <table style="width: 100%;"><tr><td>Alert Details</td><td align="right"><v-icon @click="alertDetails.dialog=false;">mdi-window-close</v-icon></td></tr></table>
       </v-card-title>
-      <v-card-text>
+      <!-- scroll the body rather than the whole card, so the title bar and its
+           close button stay put however much detail the alert carries -->
+      <v-card-text style="max-height: 70vh; overflow-y: auto;">
         <v-container fluid>
           <v-row><v-col>
 
@@ -203,6 +207,58 @@
 
             </v-col>
           </v-row>
+
+          <!-- What alertmanager did with this alert. The receivers are fact, read
+               off the alert itself; the actions come from the live config. -->
+          <v-row>
+            <v-col class="pt-0 mt-0">
+              <div style="margin-left: 20px; font-size: 16px; font-weight: bold;">Routing</div>
+              <div style="font-size: 12px; margin-left: 20px; color: #777;">
+                Receivers assigned by {{ alertDetails.item.alertmanager }}
+              </div>
+
+              <div v-if="detailsReceivers(alertDetails.item).length == 0"
+                  style="font-size: 12px; margin-left: 20px; margin-top: 8px; color: #777;">
+                No receivers recorded for this alert.
+              </div>
+
+              <div v-for="r in detailsReceivers(alertDetails.item)" :key="r.name"
+                  style="margin-left: 20px; margin-top: 10px;">
+                <v-chip size="small" label variant="tonal" color="#2563EB">
+                  <v-icon start>mdi-call-split</v-icon>{{ r.name }}
+                </v-chip>
+
+                <!-- these three states mean very different things and must not look alike -->
+                <span v-if="r.state == 'unavailable'" style="font-size: 12px; margin-left: 10px; color: #b45309;">
+                  {{ alertDetails.item.alertmanager }} configuration unavailable &mdash; cannot show what this receiver does
+                </span>
+                <span v-else-if="r.state == 'unknown'" style="font-size: 12px; margin-left: 10px; color: #b45309;">
+                  not in the current configuration (it may have changed since this alert fired)
+                </span>
+                <span v-else-if="r.actions.length == 0" style="font-size: 12px; margin-left: 10px; color: #b45309;">
+                  <v-icon size="16" color="#b45309">mdi-bell-off-outline</v-icon>
+                  no action configured &mdash; notifications sent here are discarded
+                </span>
+
+                <div v-for="(a, i) in r.actions" :key="i"
+                    style="font-size: 12px; margin-left: 30px; margin-top: 3px;">
+                  <v-icon size="16" color="#777">{{ actionIcon(a.type) }}</v-icon>
+                  <span style="color: #777; font-weight: bold;"> {{ a.type }}</span>
+                  <span v-if="a.target"> &rarr; {{ a.target }}</span>
+                  <span v-if="a.sendResolved != null" style="color: #777;">
+                    &nbsp;&middot; send_resolved: {{ a.sendResolved }}</span>
+                </div>
+              </div>
+
+              <div v-if="detailsRouteDefaults(alertDetails.item) != null"
+                  style="font-size: 12px; margin-left: 20px; margin-top: 12px; color: #777;">
+                Grouped by {{ groupByLabel(detailsRouteDefaults(alertDetails.item).groupBy) }} &middot;
+                wait {{ detailsRouteDefaults(alertDetails.item).groupWait }} &middot;
+                interval {{ detailsRouteDefaults(alertDetails.item).groupInterval }} &middot;
+                repeat {{ detailsRouteDefaults(alertDetails.item).repeatInterval }}
+              </div>
+            </v-col>
+          </v-row>
         </v-container>
       </v-card-text>
 
@@ -253,17 +309,76 @@
   <v-dialog max-width="600px" v-model="jira.dialog" persistent>
     <v-card>
       <v-card-text>
-        <v-row>
-          <v-col cols="3">Summary</v-col>
-          <v-col><v-text-field v-model="currentJira.summary"></v-text-field></v-col>
+
+        <!-- what this alert is pointing at right now -->
+        <v-row v-if="jira.currentKey" class="pa-0 ma-0">
+          <v-col cols="3" class="pb-0">Linked ticket</v-col>
+          <v-col class="pb-0">
+            <v-chip size="small" color="#2684FF" variant="tonal" label
+                style="cursor: pointer;" title="Open this ticket in jira"
+                @click="openJiraKey(jira.currentKey);">
+              <v-icon start>mdi-jira</v-icon>{{ jira.currentKey }}
+            </v-chip>
+          </v-col>
         </v-row>
-        <v-row>
-          <v-col cols="3">Description</v-col>
-          <v-col><v-textarea v-model="currentJira.description"></v-textarea></v-col>
+
+        <v-row class="pa-0 ma-0">
+          <v-col cols="3" class="pb-0">Action</v-col>
+          <v-col class="pb-0">
+            <v-radio-group v-model="jira.mode" hide-details density="compact" inline>
+              <v-radio label="Link existing" value="link"></v-radio>
+              <v-radio :label="jira.currentKey ? 'Create new (replaces)' : 'Create new'" value="create"></v-radio>
+            </v-radio-group>
+          </v-col>
         </v-row>
+
+        <!-- link: just record a key the user already has -->
+        <template v-if="jira.mode == 'link'">
+          <v-row>
+            <v-col cols="3">Ticket key</v-col>
+            <v-col>
+              <v-text-field v-model="jira.linkKey" placeholder="JIRA Key" hide-details
+                  @keyup.enter="jira.dialog=false;submitJira();">
+                <template v-slot:append-inner>
+                  <v-icon v-if="jiraUrlForKey(jira.linkKey)" color="#2684FF"
+                      style="cursor: pointer;" title="Open this ticket in jira"
+                      @click="openJiraKey(jira.linkKey);">mdi-open-in-new</v-icon>
+                </template>
+              </v-text-field>
+              <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+                Points this alert at a ticket that already exists. Nothing is created.
+              </div>
+            </v-col>
+          </v-row>
+        </template>
+
+        <!-- create: the original new-ticket form -->
+        <template v-else>
+          <v-row>
+            <v-col cols="3">Summary</v-col>
+            <v-col><v-text-field v-model="currentJira.summary" hide-details></v-text-field></v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="3">Description</v-col>
+            <v-col><v-textarea v-model="currentJira.description" hide-details></v-textarea></v-col>
+          </v-row>
+          <v-row v-if="jira.currentKey">
+            <v-col cols="3"></v-col>
+            <v-col>
+              <div style="font-size: 11px; color: #b45309;">
+                A new ticket will be raised and {{ jira.currentKey }} will be replaced by it.
+              </div>
+            </v-col>
+          </v-row>
+        </template>
+
       </v-card-text>
       <v-card-actions>
-        <v-btn color="blue-darken-1" text @click="jira.dialog=false;saveJira();">Submit </v-btn>
+        <v-btn color="blue-darken-1" text
+            :disabled="jira.mode == 'link' && !(jira.linkKey || '').trim()"
+            @click="jira.dialog=false;submitJira();">
+          {{ jira.mode == 'link' ? 'Link' : 'Create' }}
+        </v-btn>
         <v-btn color="blue-darken-1" text @click="jira.dialog=false;">Cancel</v-btn>
       </v-card-actions>
     </v-card>
@@ -617,7 +732,7 @@
           </template>
 
           <template #item-icon="item">
-            <div style="border: 0; display: flex; align-items: center; gap: 2px; cursor: pointer;"
+            <div class="icon-cell"
                 title="View details"
                 @click="alertDetails.item=item; alertDetails.dialog=true;">
               <v-icon v-if="isStale(item)" size="24" color="blue-grey-darken-1" class="mr-1"
@@ -642,9 +757,16 @@
                   </td></tr>
               </table>
 
-              <v-icon v-if="getExtraAnnotations(item).length > 0" size="24" color="#EAB308"
-                  class="ml-3" style="cursor: pointer;" title="View annotations"
+              <v-icon v-if="getExtraAnnotations(item).length > 0" color="#EAB308"
+                  class="ml-1" style="cursor: pointer;" title="View annotations"
                   @click.stop="annotationsDialog.item=item; annotationsDialog.dialog=true;">mdi-note-text</v-icon>
+
+              <v-icon v-if="isCallin(item)" color="#16A34A"
+                  class="ml-1" title="Call-in alert">mdi-phone</v-icon>
+
+              <v-icon v-if="item.jiraKey" color="#2684FF"
+                  class="ml-1" style="cursor: pointer;" :title="'Open jira ticket ' + item.jiraKey"
+                  @click.stop="openJira(item);">mdi-jira</v-icon>
             </div>
           </template>
 
@@ -789,6 +911,21 @@
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+/* Status + annotations + jira indicators share one fixed-width column, so they
+   must never be squashed: a shrunk v-icon collapses to nothing and the
+   indicator silently disappears instead of the column overflowing visibly.
+   The column width itself is set in App.vue. */
+.icon-cell {
+  border: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+}
+.icon-cell > * {
+  flex-shrink: 0;
+}
+
 h3 {
   margin: 40px 0 0;
 }

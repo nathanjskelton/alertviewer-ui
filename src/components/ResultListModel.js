@@ -2,6 +2,8 @@ import axios from "axios";
 import { useRouter, useRoute } from 'vue-router';
 import { ref, computed } from 'vue';
 import AlertGantt from './AlertGantt.vue';
+import { DEFAULT_RETENTION_MINUTES } from './timelineWindow';
+import { receiverNamesOf, buildReceiverIndex, lookupReceiver, actionIcon } from './receivers';
 
 export default {
   components: { AlertGantt },
@@ -29,7 +31,7 @@ export default {
     // end == null means "still firing", so the graph can extend the bar to its
     // own idea of now instead of the moment this was last recomputed.
     alertIntervals() {
-      const windowStart = Date.now() - 24 * 60 * 60 * 1000;
+      const windowStart = Date.now() - this.retentionMinutes * 60000;
       const out = [];
       this.eachVisibleAlert((item, firing) => {
         if (firing.end != null && firing.end < windowStart) {
@@ -69,10 +71,24 @@ export default {
       return rows;
     }
   },
-  emits: ['alerts','alert','status','token','user','role','banner','alertManagerStatus','lastIngest','alertIntervals','closeTimeline'],
+  emits: ['alerts','alert','status','token','user','role','banner','retention','alertManagerStatus','lastIngest','alertIntervals','closeTimeline'],
   data() {
     return {
+      // How far back the backend still keeps RESOLVED alerts. Replaced by the
+      // real value from the login response; until then the default keeps the
+      // interval filter from trimming history the graph may be about to ask for.
+      retentionMinutes: DEFAULT_RETENTION_MINUTES,
+      // Resolved alerts the status filter excluded, in the backend's cut-down
+      // AlertHistory shape. Graph and gantt only -- they are not table rows and
+      // do not carry enough fields to be one. Empty when the filter already
+      // includes RESOLVED, since `info` then holds them in full.
+      history: [],
       rowsPerPage: null,
+      // "NOT CALLIN" in the Attributes filter: ticked means don't care about the
+      // callin label and show every alert; unticked narrows to callin alerts
+      // only. Ticked by default so links made before this filter existed, and
+      // plain visits, still show everything.
+      notCallin: true,
       panel: [],
       expandMode: null,
       currentJira: {
@@ -85,7 +101,29 @@ export default {
 
       jira: {
         dialog: false,
+        // 'create' makes a new ticket through wraith, 'link' just records a key
+        // the user already has. Defaults to whichever makes sense for the row.
+        mode: 'create',
+        // the alert the dialog was opened on, and the key it already carries
+        item: null,
+        currentKey: null,
+        // key typed in for 'link'
+        linkKey: '',
       },
+
+      // Alertmanager routing config, fetched once after login. Only used to say
+      // what a receiver does; the receivers an alert was routed to come from the
+      // alert itself, so this staying empty degrades the panel rather than breaking it.
+      routing: {
+        alertmanagers: [],
+        index: {},
+        loaded: false,
+      },
+
+      // Base of the jira instance, from the login response. Empty until then,
+      // and empty if the backend has no jira.base.url configured, which is what
+      // keeps the ticket icon from offering a link that goes nowhere.
+      jiraBaseUrl: '',
 
       currentSilence: {
         matchers: [
@@ -339,6 +377,9 @@ export default {
     cortana_token: {
       handler() {
         console.log("cortana_token set on result list: "+this.cortana_token);
+        //the token is emitted up and handed back as a prop, so it is not set yet
+        //when login() returns; fetch the routing config once it has actually arrived
+        if (this.cortana_token) { this.fetchRoutes(); }
       }
     },
     statuses: {
@@ -349,6 +390,15 @@ export default {
           this.statuses.push('NEW');
         }
 
+        if (this.autoRefresh) {
+          this.fetchData();
+        } else {
+          this.refreshStyle = "orange";
+        }
+      }
+    },
+    notCallin: {
+      handler() {
         if (this.autoRefresh) {
           this.fetchData();
         } else {
@@ -445,6 +495,14 @@ export default {
         this.autoRefresh = true;
       }
 
+      //only an explicit notCallin=false narrows to callin alerts; anything else,
+      //including the param being absent, leaves it ticked and shows everything
+      if (this.query.notCallin == "false") {
+        this.notCallin = false;
+      } else {
+        this.notCallin = true;
+      }
+
       if (this.query.showLabels == "true") {
         this.showExtraLabels = true;
       } else {
@@ -529,6 +587,10 @@ export default {
           this.$emit('user', response.headers['cortana-user']);
           this.$emit("role", response.headers['cortana-role']);
           this.$emit("banner", response.headers['cortana-banner']);
+          const retention = Number(response.headers['cortana-retention']);
+          if (isFinite(retention) && retention > 0) { this.retentionMinutes = retention; }
+          this.$emit("retention", this.retentionMinutes);
+          this.jiraBaseUrl = response.headers['cortana-jira-url'] || '';
           console.log("HEADERS "+response.headers)
         });
     },
@@ -706,19 +768,25 @@ export default {
       }
       return { start: start, end: ended != null && ended < now ? ended : null };
     },
-    // Walk every alert the table is currently showing, in group order, with its
-    // firing window resolved. Shared by the timeline graph and the gantt view so
-    // the two can never disagree about what is on screen.
+    // Walk every alert the server returned -- the grouped entries plus the
+    // resolved-only history -- with its firing window resolved. Shared by the
+    // timeline graph and the gantt view so the two can never disagree.
+    //
+    // The history half is what keeps the graph populated while the viewer is
+    // looking at a FIRING-only list; it is empty whenever `info` already holds
+    // the resolved alerts, so nothing is ever counted twice. The search filters
+    // apply to both, so narrowing by name narrows the graph with it.
     eachVisibleAlert(callback) {
-      Object.keys(this.info).forEach(key => {
-        const group = this.info[key];
-        this.applyClientFilters(group.list || []).forEach(item => {
+      const visit = list => {
+        this.applyClientFilters(list).forEach(item => {
           const firing = this.firingWindow(item);
           if (firing != null) {
             callback(item, firing);
           }
         });
-      });
+      };
+      Object.keys(this.info).forEach(key => visit((this.info[key] || {}).list || []));
+      visit(this.history || []);
     },
     applyClientFilters(list) {
       // Mirror the EasyDataTable filterOptions so header stats match the
@@ -871,7 +939,17 @@ export default {
       this.currentJira.description = item.alert.annotations.summary;
       this.currentJira.summary = "Cortana: " + item.alert.labels.alertname;
       this.currentJira.system = item.alert.labels.environment;
+      this.jira.item = item;
+      this.jira.currentKey = item.jiraKey || null;
+      //an alert that already has a ticket is far more likely to be getting
+      //pointed at a different one than to want a second ticket raised
+      this.jira.mode = item.jiraKey ? 'link' : 'create';
+      this.jira.linkKey = item.jiraKey || '';
       this.jira.dialog = true;
+    },
+    //the dialog's one Submit: make a ticket, or record one the user already has
+    submitJira() {
+      if (this.jira.mode == 'link') { this.linkJira(); } else { this.saveJira(); }
     },
     saveJira() {
       axios
@@ -879,10 +957,108 @@ export default {
         //eslint-disable-next-line no-unused-vars
         .then(response => {
           this.onSuccess(response);
+          //the backend stored the new ticket key against the alert, so re-read
+          //the rows to bring the ticket icon in
+          this.fetchData();
         })
         .catch(error => {
           this.handleError(error);
         });
+    },
+    //point the alert at a ticket that already exists, replacing any current one
+    linkJira() {
+      const id = this.jira.item ? this.jira.item.id : null;
+      const key = (this.jira.linkKey || '').trim();
+      if (id == null || key == '') { return; }
+      axios
+        .post(this.baseUrl + "jira/link?id=" + encodeURIComponent(id), key, {
+          headers: {
+            "Content-Type": "text/plain",
+            "CORTANA-TOKEN": this.cortana_token
+          }
+        })
+        //eslint-disable-next-line no-unused-vars
+        .then(response => {
+          this.onSuccess(response);
+          this.fetchData();
+        })
+        .catch(error => {
+          this.handleError(error);
+        });
+    },
+    //url for a key typed into the dialog, so the user can check it before linking
+    jiraUrlForKey(key) {
+      const k = (key || '').trim();
+      if (k == '' || !this.jiraBaseUrl) { return null; }
+      return this.jiraBaseUrl.replace(/\/+$/, '') + "/browse/" + k.toUpperCase();
+    },
+    openJiraKey(key) {
+      const url = this.jiraUrlForKey(key);
+      if (url == null) {
+        this.$emit("alert", "No JIRA url configured", "error");
+        return;
+      }
+      window.open(url, "jira_" + key, "noopener");
+    },
+    //routing config for the details panel. Fetched once, not on the poll: it is
+    //large and changes about as often as someone edits alertmanager.yml.
+    fetchRoutes() {
+      axios
+        .get(this.baseUrl + "routes", {headers: {"CORTANA-TOKEN": this.cortana_token}})
+        .then(response => {
+          const ams = response.data.payload.alertmanagers || [];
+          this.routing.alertmanagers = ams;
+          this.routing.index = buildReceiverIndex(ams);
+          this.routing.loaded = true;
+        })
+        .catch(error => {
+          //not fatal: the panel still lists the receivers, just not what they do
+          console.log("Unable to load routing config: " + error);
+        });
+    },
+    //what happened to this alert: the receivers alertmanager assigned it, each
+    //resolved to what that receiver actually does
+    detailsReceivers(item) {
+      if (item == null) { return []; }
+      return receiverNamesOf(item).map(
+        name => lookupReceiver(this.routing.index, item.alertmanager, name));
+    },
+    //effective grouping and timings for the alert's alertmanager, from its root route
+    detailsRouteDefaults(item) {
+      if (item == null) { return null; }
+      const am = this.routing.alertmanagers.find(a => a.name == item.alertmanager);
+      return (am && am.route) ? am.route : null;
+    },
+    actionIcon(type) {
+      return actionIcon(type);
+    },
+    //an empty group_by means one group for everything, not "ungrouped"
+    groupByLabel(groupBy) {
+      if (groupBy == null || groupBy.length == 0) { return 'all alerts together'; }
+      if (groupBy.length == 1 && groupBy[0] == '...') { return 'every label'; }
+      return groupBy.join(', ');
+    },
+    //an alert is a callin when its callin label reads true or 1; anything else,
+    //including the label being absent, is not
+    isCallin(item) {
+      const v = item && item.alert && item.alert.labels ? item.alert.labels.callin : null;
+      if (v == null) { return false; }
+      const t = String(v).trim().toLowerCase();
+      return t == "true" || t == "1";
+    },
+    //link to an alert's ticket, or null when there is no ticket or no jira configured
+    jiraUrl(item) {
+      if (item == null || !item.jiraKey || !this.jiraBaseUrl) { return null; }
+      return this.jiraBaseUrl.replace(/\/+$/, '') + "/browse/" + item.jiraKey;
+    },
+    openJira(item) {
+      const url = this.jiraUrl(item);
+      if (url == null) {
+        this.$emit("alert", "No JIRA url configured for this ticket", "error");
+        return;
+      }
+      //jira refuses to be framed, so its own window is the only way to show it
+      window.open(url, "jira_" + item.jiraKey, "noopener");
     },
     copyDialogText() {
       let textToCopy = this.$refs.copydialog.$el.querySelector('textarea');
@@ -905,6 +1081,7 @@ export default {
           environments: this.searchEnvironment,
           groupField: this.groupField,
           autoRefresh: this.autoRefresh,
+          notCallin: this.notCallin,
           showLabels: this.showExtraLabels,
           grpExpMode: this.expandMode,
           rowsPerPage: this.rowsPerPage
@@ -991,6 +1168,12 @@ export default {
         urlString = urlString + delim + "groupField=" + this.groupField;
         delim = "&";
       }
+
+      //only ask the backend to narrow when NOT CALLIN is unticked
+      if (!this.notCallin) {
+        urlString = urlString + delim + "callinOnly=true";
+        delim = "&";
+      }
       
       if (asExport) {
         window.open(urlString, "_blank");
@@ -1005,6 +1188,7 @@ export default {
             this.silences = response.data.payload.silences;
             this.alertmanagers = response.data.payload.alertmanagers;
             this.info = response.data.payload.entries;
+            this.history = response.data.payload.history || [];
             //this.info.forEach(item => {
             //  this.expanded.push(item.id);
             //})
