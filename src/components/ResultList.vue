@@ -130,6 +130,16 @@
             title="Ticked: show every alert. Unticked: only alerts whose callin label is true or 1."></v-checkbox>
       </v-card>
 
+      <!-- Admin only, and confirmed first: it re-reads every alert's ticket from
+           the labels in jira, and can optionally drop the links no ticket claims. -->
+      <v-btn v-if="cortana_role == 'admin'" block class="mt-4" height=50
+          :loading="jiraRebuild.running" @click="jiraRebuild.clear = false; jiraRebuild.dialog = true"
+          style="background-color:rgba(0, 0, 0, 0.04);"
+          title="Re-read every alert's jira ticket from its label.">
+        <span class="mr-2">Rebuild Jira Links</span>
+        <v-icon>mdi-link-variant</v-icon>
+      </v-btn>
+
     </div>
   </v-navigation-drawer>
 
@@ -182,6 +192,11 @@
                 <div style="font-size: 12px;margin-left: 20px;"><span style="font-weight: bold"> Instance: </span> {{alertDetails.item.alert.labels.instance}}</div>
                 <div style="font-size: 12px;margin-left: 20px;"><span style="font-weight: bold"> Environment: </span> {{alertDetails.item.alert.labels.environment}}</div>
                 <div style="font-size: 12px;margin-left: 20px;"><span style="font-weight: bold"> Team: </span> {{alertDetails.item.alert.labels.team}}</div>
+
+                <!-- the label this alert's ticket carries in jira, spelled exactly as it
+                     appears there, so it can be pasted straight into a jira search -->
+                <div style="font-size: 12px;margin-left: 20px;margin-top: 15px;"><span style="font-weight: bold"> Jira Label: </span>
+                  <span style="font-family: monospace; user-select: all;">{{jiraLabel(alertDetails.item)}}</span></div>
 
 
                 <div style="font-size: 14px;margin-left: 20px; margin-top: 15px;"><span style="font-weight: bold">Additional Labels</span></div>
@@ -290,6 +305,26 @@
       </v-card-text>
       <v-card-actions>
         <v-btn color="blue-darken-1" text @click="copyDialogText()">Copy/Close</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <v-dialog max-width="600px" v-model="jiraRebuild.dialog" persistent>
+    <v-card>
+      <v-card-title class="pa-4" style="background-color: purple; color: white; font-size: large; font-weight: bold;">
+        Rebuild Jira Links
+      </v-card-title>
+      <v-card-text class="pt-4">
+        Every alert's jira link is re-read from the ticket labelled with its
+        fingerprint. Alerts whose label turns up no ticket keep the link they
+        have now, unless you tick the box below.
+        <v-checkbox class="mt-2" hide-details density="compact" v-model="jiraRebuild.clear"
+            label="Clear jira links that don't match a ticket label"
+            title="Alerts whose label turns up no ticket lose the link they have now, including links added by hand. This cannot be undone."></v-checkbox>
+      </v-card-text>
+      <v-card-actions>
+        <v-btn color="blue-darken-1" text @click="rebuildJiraLinks();">Rebuild</v-btn>
+        <v-btn color="blue-darken-1" text @click="jiraRebuild.dialog=false;">Cancel</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

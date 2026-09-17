@@ -120,10 +120,25 @@ export default {
         loaded: false,
       },
 
+      // "Rebuild Jira Links" in the left drawer: confirmation dialog, and a
+      // spinner on the button while the backend walks every alert. `clear` is the
+      // dialog's tickbox and starts off every time the dialog opens: dropping the
+      // links of alerts no ticket claims has to be asked for, not defaulted into.
+      jiraRebuild: {
+        dialog: false,
+        running: false,
+        clear: false,
+      },
+
       // Base of the jira instance, from the login response. Empty until then,
       // and empty if the backend has no jira.base.url configured, which is what
       // keeps the ticket icon from offering a link that goes nowhere.
       jiraBaseUrl: '',
+
+      // Prefix the backend puts on the jira label that carries the fingerprint.
+      // Same value the rebuild searches on, so the details panel shows the label
+      // exactly as it appears on the ticket.
+      jiraLabelPrefix: 'alertmanager',
 
       currentSilence: {
         matchers: [
@@ -591,6 +606,7 @@ export default {
           if (isFinite(retention) && retention > 0) { this.retentionMinutes = retention; }
           this.$emit("retention", this.retentionMinutes);
           this.jiraBaseUrl = response.headers['cortana-jira-url'] || '';
+          this.jiraLabelPrefix = response.headers['cortana-jira-label-prefix'] || 'alertmanager';
           console.log("HEADERS "+response.headers)
         });
     },
@@ -985,6 +1001,31 @@ export default {
         .catch(error => {
           this.handleError(error);
         });
+    },
+    //re-point every alert at the ticket jira labels with its fingerprint. Admin
+    //only, and only reached through the confirmation dialog, which is also where
+    //the tickbox for dropping the links no ticket claims lives.
+    rebuildJiraLinks() {
+      this.jiraRebuild.dialog = false;
+      this.jiraRebuild.running = true;
+      axios
+        .post(this.baseUrl + "jira/rebuild?clear=" + (this.jiraRebuild.clear ? "true" : "false"), null,
+          {headers: {"CORTANA-TOKEN": this.cortana_token}})
+        .then(response => {
+          this.jiraRebuild.running = false;
+          this.onSuccess(response);
+          //the links moved under the rows, so re-read them to bring the ticket icons in line
+          this.fetchData();
+        })
+        .catch(error => {
+          this.jiraRebuild.running = false;
+          this.handleError(error);
+        });
+    },
+    //the label an alert's ticket carries in jira, as it appears on the ticket
+    jiraLabel(item) {
+      if (item == null || item.id == null) { return null; }
+      return this.jiraLabelPrefix + ":" + item.id;
     },
     //url for a key typed into the dialog, so the user can check it before linking
     jiraUrlForKey(key) {
