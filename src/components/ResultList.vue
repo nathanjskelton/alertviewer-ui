@@ -161,11 +161,11 @@
             <div>
               <span class="ps-5">
                 <v-chip color="green lighten-1" size="small">STARTED</v-chip>
-                {{ alertDetails.item.friendlyStartTime  }}
+                {{ alertDetails.item.friendlyStartTime }} UTC
               </span>
               <span class="ps-5">
                 <v-chip color="red lighten-1" size="small">ENDS</v-chip>
-                {{ alertDetails.item.friendlyEndTime }}
+                {{ alertDetails.item.friendlyEndTime }} UTC
               </span>
             </div>
           </v-col></v-row> 

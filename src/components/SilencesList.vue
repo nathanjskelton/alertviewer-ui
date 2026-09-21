@@ -133,10 +133,10 @@
 
           <v-row class="pa-0 ma-0">
             <v-col cols=6 class="pl-0 ma-0">
-              <v-text-field v-model="outage.startsAt" label="Starts" type="datetime-local" density="compact"></v-text-field>
+              <v-text-field v-model="outage.startsAt" label="Starts (UTC)" type="datetime-local" density="compact"></v-text-field>
             </v-col>
             <v-col cols=6 class="pr-0 ma-0">
-              <v-text-field v-model="outage.endsAt" label="Ends" type="datetime-local" density="compact"></v-text-field>
+              <v-text-field v-model="outage.endsAt" label="Ends (UTC)" type="datetime-local" density="compact"></v-text-field>
             </v-col>
           </v-row>
 
@@ -307,6 +307,10 @@
                 if (this.outage.endsAt <= this.outage.startsAt) {
                     return "The outage has to end after it starts.";
                 }
+                //alertmanager refuses a silence that is already over
+                if (new Date(this.toApiDate(this.outage.endsAt)).getTime() <= Date.now()) {
+                    return "The outage has already ended. Times are UTC.";
+                }
                 //alertmanager rejects a silence that matches nothing at all, and one
                 //that matched everything would be worse
                 if (this.outage.environments.length == 0 && this.outage.teams.length == 0) {
@@ -376,11 +380,13 @@
                     result.isEqual = true;
                 }
             },
-            //"YYYY-MM-DDTHH:mm", which is what a datetime-local field reads and writes
-            localDateTime(date) {
-                const pad = n => String(n).padStart(2, "0");
-                return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate())
-                    + "T" + pad(date.getHours()) + ":" + pad(date.getMinutes());
+            //"YYYY-MM-DDTHH:mm", which is what a datetime-local field reads and writes.
+            //The field has no zone of its own, and toApiDate sends whatever is in it
+            //as UTC, so it has to be filled in UTC too. Filling it with the browser's
+            //local time made every outage west of UTC start and end hours early --
+            //often already over, which alertmanager refuses.
+            utcDateTime(date) {
+                return date.toISOString().substring(0, 16);
             },
             //the silence api spells its dates yyyy-MM-ddTHH:mm:ss.SSSZ
             toApiDate(local) {
@@ -392,8 +398,8 @@
                 const end = new Date(now.getTime() + 4 * 60 * 60 * 1000);
                 this.outage.name = null;
                 this.outage.alertmanager = null;
-                this.outage.startsAt = this.localDateTime(now);
-                this.outage.endsAt = this.localDateTime(end);
+                this.outage.startsAt = this.utcDateTime(now);
+                this.outage.endsAt = this.utcDateTime(end);
                 this.outage.allEnvironments = [];
                 this.outage.allTeams = [];
                 this.outage.environmentLabels = ["environment"];

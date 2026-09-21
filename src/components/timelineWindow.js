@@ -85,12 +85,14 @@ export function formatSpan(minutes) {
 
 // How precise a timestamp has to be to distinguish two points in this window.
 // Under an hour the seconds matter; over a day the clock time alone repeats.
+// In UTC, like every time this tool shows: the backend and alertmanager both
+// work in UTC, and a viewer's local clock would disagree with them.
 export function formatStamp(ms, windowMinutes) {
   const at = new Date(ms)
-  const hhmm = ('0' + at.getHours()).slice(-2) + ':' + ('0' + at.getMinutes()).slice(-2)
+  const hhmm = ('0' + at.getUTCHours()).slice(-2) + ':' + ('0' + at.getUTCMinutes()).slice(-2)
   if (windowMinutes <= 60) {
-    return hhmm + ':' + ('0' + at.getSeconds()).slice(-2)
+    return hhmm + ':' + ('0' + at.getUTCSeconds()).slice(-2)
   }
   if (windowMinutes <= 1440) { return hhmm }
-  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][at.getDay()] + ' ' + hhmm
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][at.getUTCDay()] + ' ' + hhmm
 }

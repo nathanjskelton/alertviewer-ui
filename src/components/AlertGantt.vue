@@ -2,7 +2,7 @@
   <div class="gantt">
     <div class="gantt__head">
       <v-icon size="small" class="gantt__head-icon">mdi-chart-timeline</v-icon>
-      <span class="gantt__title">Firing {{ formatStamp(start) }} &ndash; {{ formatStamp(end) }}</span>
+      <span class="gantt__title">Firing {{ formatStamp(start) }} &ndash; {{ formatStamp(end) }} UTC</span>
       <span class="gantt__sub">{{ spanLabel }} &middot; {{ rows.length }} alert{{ rows.length == 1 ? '' : 's' }}</span>
       <v-spacer></v-spacer>
       <!-- only worth offering when the window actually holds some -->
@@ -184,21 +184,21 @@
         }
         return COLOR_OTHER
       },
+      // All in UTC, like every time this tool shows.
       formatTime(ms) {
         const at = new Date(ms)
-        return ('0' + at.getHours()).slice(-2) + ':' + ('0' + at.getMinutes()).slice(-2)
+        return ('0' + at.getUTCHours()).slice(-2) + ':' + ('0' + at.getUTCMinutes()).slice(-2)
       },
       formatDayTime(ms) {
         const at = new Date(ms)
-        const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][at.getDay()]
+        const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][at.getUTCDay()]
         // Midnight ticks carry the day on its own; the clock adds nothing.
-        return at.getHours() == 0 && at.getMinutes() == 0 ? day : day + ' ' + this.formatTime(ms)
+        return at.getUTCHours() == 0 && at.getUTCMinutes() == 0 ? day : day + ' ' + this.formatTime(ms)
       },
       formatStamp(ms) {
         const at = new Date(ms)
-        const today = new Date()
-        const sameDay = at.toDateString() == today.toDateString()
-        return (sameDay ? '' : (at.getMonth() + 1) + '/' + at.getDate() + ' ') + this.formatTime(ms)
+        const sameDay = at.toISOString().slice(0, 10) == new Date().toISOString().slice(0, 10)
+        return (sameDay ? '' : (at.getUTCMonth() + 1) + '/' + at.getUTCDate() + ' ') + this.formatTime(ms)
       },
       barTitle(row) {
         let text = row.alertname

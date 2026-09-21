@@ -193,12 +193,12 @@
       },
       // Gridlines on round clock times rather than on the window's ragged edge,
       // which is what lets the eye read "that spike was around midnight".
-      // Anchored to local midnight because every step divides a day evenly, so
+      // Anchored to UTC midnight because every step divides a day evenly, so
       // stepping from there keeps hour and day lines on the hour and the day.
       gridTicks(startMs, endMs) {
         const step = this.gridMs
         const anchor = new Date(startMs)
-        anchor.setHours(0, 0, 0, 0)
+        anchor.setUTCHours(0, 0, 0, 0)
         // Jump straight to the first multiple inside the window rather than
         // stepping up to it -- at five minutes' zoom the anchor is most of a day
         // behind the window.
@@ -209,11 +209,11 @@
           const at = new Date(ms)
           let major
           if (step < 3600000) {
-            major = at.getMinutes() == 0
+            major = at.getUTCMinutes() == 0
           } else if (step < 86400000) {
-            major = at.getHours() == 0
+            major = at.getUTCHours() == 0
           } else {
-            major = at.getDay() == 1
+            major = at.getUTCDay() == 1
           }
           out.push({ ms, major })
           if (out.length > 200) { break }
@@ -349,7 +349,7 @@
         const range = this.dragRange()
         this.tip = {
           left: Math.min(Math.max(x, 80), width - 80),
-          label: this.stamp(range.start) + ' – ' + this.stamp(range.end) + ' · ' +
+          label: this.stamp(range.start) + ' – ' + this.stamp(range.end) + ' UTC · ' +
             this.duration(range.end + 1 - range.start),
         }
         this.draw()
@@ -399,7 +399,7 @@
 
         this.tip = {
           left: Math.min(Math.max(x, 80), width - 80),
-          label: this.stamp((stats.firstBucket + index) * stats.size) + ' · ' + total + ' firing' +
+          label: this.stamp((stats.firstBucket + index) * stats.size) + ' UTC · ' + total + ' firing' +
             (breakdown.length > 0 ? ' (' + breakdown.join(', ') + ')' : '') + ' — drag to inspect',
         }
       },

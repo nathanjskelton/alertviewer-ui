@@ -89,5 +89,17 @@
   box-shadow: inset 4px 0 0 #f97316;
 }
 
+/* Keep each table's pager on screen. The app footer (status bar + timeline
+   graph) is fixed over the bottom of the page, so a long table used to leave
+   its pager below the fold or under the footer. Sticking it just above the
+   footer (--v-layout-bottom is the footer's measured height, set on v-main)
+   keeps it reachable while any part of its table is visible. */
+.customize-table .vue3-easy-data-table__footer {
+  position: sticky;
+  bottom: var(--v-layout-bottom, 0px);
+  z-index: 3;
+  background-color: #ffffff;
+}
+
 .v-expansion-panel-text__wrapper { padding: 0 !important; }
 </style>
