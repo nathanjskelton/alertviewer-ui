@@ -31,13 +31,24 @@ export default {
     // end == null means "still firing", so the graph can extend the bar to its
     // own idea of now instead of the moment this was last recomputed.
     alertIntervals() {
-      const windowStart = Date.now() - this.retentionMinutes * 60000;
+      const now = Date.now();
+      const windowStart = now - this.retentionMinutes * 60000;
       const out = [];
       this.eachVisibleAlert((item, firing) => {
         if (firing.end != null && firing.end < windowStart) {
           return;
         }
-        out.push({ start: firing.start, end: firing.end, severity: item.alert.labels.severity });
+        // Count only the stretches the alert was actually notifying. Dropping a
+        // silenced alert whole would erase the hours it fired before anyone muted
+        // it; counting it whole puts a hump in the graph for something deliberately
+        // turned off. Neither is what the line is meant to show.
+        const quiet = this.silencedWindows(item, firing);
+        this.unsilencedParts(firing, quiet, now).forEach(part => {
+          if (part.end != null && part.end < windowStart) {
+            return;
+          }
+          out.push({ start: part.start, end: part.end, severity: item.alert.labels.severity });
+        });
       });
       return out;
     },
@@ -55,6 +66,13 @@ export default {
         if (firing.start > selection.end || end < selection.start) {
           return;
         }
+        const quiet = this.silencedWindows(item, firing);
+        // whether any of this alert's unsilenced time falls inside the window being
+        // looked at. If none does, it was muted throughout and is hidden by default
+        const notifying = this.unsilencedParts(firing, quiet, now).some(part => {
+          const partEnd = part.end == null ? now : part.end;
+          return part.start < selection.end && partEnd > selection.start;
+        });
         rows.push({
           id: item.id,
           alertname: item.alert.labels.alertname,
@@ -63,6 +81,11 @@ export default {
           severity: item.alert.labels.severity,
           summary: this.getSummaryHeader(item.alert.labels.alertname, item.alert.annotations.summary),
           status: item.status,
+          // carried rather than filtered out here: the gantt hides fully silenced
+          // rows by default but can show them, and it hatches the muted stretches of
+          // the ones it does show
+          silenced: !notifying,
+          silencedWindows: quiet,
           start: firing.start,
           end: firing.end,
         });
@@ -134,6 +157,9 @@ export default {
       // and empty if the backend has no jira.base.url configured, which is what
       // keeps the ticket icon from offering a link that goes nowhere.
       jiraBaseUrl: '',
+      //jira runs through wraith. With none configured the server says so and every
+      //jira control comes off the screen rather than sitting there doing nothing
+      jiraEnabled: false,
 
       // Prefix the backend puts on the jira label that carries the fingerprint.
       // Same value the rebuild searches on, so the details panel shows the label
@@ -175,6 +201,8 @@ export default {
       },
       silences: [],
 
+      //bumped to force the group tables to remount; see firstPage()
+      tableEpoch: 0,
       autoRefresh: true,
       showExtraLabels: false,
       alertManagerStatus: {},
@@ -272,7 +300,7 @@ export default {
             if (this.isStale(item)) {
               staleCount++;
             }
-            if (item.status == "NEW") {
+            if (item.status == "NEW" && !item.acked) {
               firing++;
               const ms = now - new Date(item.alert.startsAt);
               if (ms > maxMs) {
@@ -400,8 +428,13 @@ export default {
     statuses: {
       handler() {
 
-        if (this.statuses == null || this.statuses.length == 0 ||
-            (this.statuses.length == 1 && this.statuses[0] == "FLAPPING") ) {
+        //FLAPPING and JIRA name an attribute rather than a state, so ticked on their
+        //own they leave the query with no status to match. Keep FIRING ticked so the
+        //table shows something rather than going blank
+        const attributes = ["FLAPPING", "JIRA", "ACKED"];
+        if (this.statuses == null) {
+          this.statuses = ['NEW'];
+        } else if (!this.statuses.some(s => !attributes.includes(s))) {
           this.statuses.push('NEW');
         }
 
@@ -588,6 +621,30 @@ export default {
     getSummaryHeader(name, summary) {
         return (""+summary).split('\n')[0] + "";
     },
+    //back to the default view. The tables page independently of the filters, so a
+    //clear that left them on page 4 would show an empty table over a full result set
+    clearFilters() {
+      this.searchAlertName = null;
+      this.searchTeam = null;
+      this.searchInstance = null;
+      this.searchSummary = null;
+      this.searchEnvironment = [];
+      this.searchSeverity = [];
+      this.environments = [];
+      this.panel = [];
+      this.groupField = null;
+      this.statuses = ['NEW', 'FLAPPING'];
+      this.firstPage();
+    },
+    //Remount the group tables, which starts their pagination over.
+    //
+    //Asking them directly does not work: EasyDataTable's updatePage() returns without
+    //doing anything while its loading prop is set, and clearing the filters kicks off
+    //a refetch that sets exactly that. The table's key carries this counter, so
+    //bumping it rebuilds the tables on page one whatever else is in flight.
+    firstPage() {
+      this.tableEpoch++;
+    },
     autoFetchData() {
       if (this.autoRefresh) { this.fetchData(false, true); }
     },
@@ -606,6 +663,7 @@ export default {
           if (isFinite(retention) && retention > 0) { this.retentionMinutes = retention; }
           this.$emit("retention", this.retentionMinutes);
           this.jiraBaseUrl = response.headers['cortana-jira-url'] || '';
+          this.jiraEnabled = String(response.headers['cortana-jira-enabled'] || '') == 'true';
           this.jiraLabelPrefix = response.headers['cortana-jira-label-prefix'] || 'alertmanager';
           console.log("HEADERS "+response.headers)
         });
@@ -753,8 +811,9 @@ export default {
       if (this.isStale(item)) {
         return "stale-row";
       }
-      // Freshly firing alerts get a red highlight that fades with age.
-      if (item.status == "NEW") {
+      // Freshly firing alerts get a red highlight that fades with age. An acked one
+      // is already being dealt with, so it does not shout for attention.
+      if (item.status == "NEW" && !item.acked) {
         const ms = new Date() - new Date(item.alert.startsAt);
         if (ms <= 60 * 1000) {
           return "firing-new-row";
@@ -803,6 +862,116 @@ export default {
       };
       Object.keys(this.info).forEach(key => visit((this.info[key] || {}).list || []));
       visit(this.history || []);
+    },
+    isSilenced(item) {
+      return item != null && item.status == "SILENCED";
+    },
+    // The status a system note is announcing, or null if it announces none. The
+    // record only keeps one current status, so these notes are the only history of
+    // what an alert was doing and when. Every message that moves the status is here:
+    // miss one that ends a silence and the alert reads as muted ever after.
+    noteStatus(message) {
+      const text = String(message == null ? '' : message);
+      if (text == 'Alert is SILENCED') { return 'SILENCED'; }
+      if (text == 'Previously SILENCED alert is now NEW') { return 'NEW'; }
+      if (text == 'Previously RESOLVED alert is now NEW') { return 'NEW'; }
+      if (text == 'Alert is now RESOLVED') { return 'RESOLVED'; }
+      // a silenced alert that stops firing goes straight to RESOLVED, and the mark
+      // endpoint writes every user-driven change the same way
+      const marked = text.match(/^Status set to ([A-Z]+)$/);
+      return marked == null ? null : marked[1];
+    },
+    // A note's timestamp in ms, on the same clock as the alert timestamps it gets
+    // compared against.
+    //
+    // Both are server LocalDateTimes, but they reach us spelled differently. Alert
+    // times carry a @JsonFormat whose pattern ends in a quoted 'Z', so a wall clock
+    // arrives as "...T14:30:00.000Z" and the browser reads it as UTC. Notes have no
+    // such format, so the same wall clock arrives as "...T14:30:00.123" and the
+    // browser reads it as local. Left alone the two are offset by the viewer's own
+    // timezone -- and east of UTC the notes land before the alert even started,
+    // which made a silence swallow the whole firing window and drop the alert out of
+    // the graph. So read a bare note time as UTC, the way alert times already are.
+    noteTime(note) {
+      const raw = note == null ? null : note.timestamp;
+      if (raw == null) { return null; }
+      // jackson can also emit a LocalDateTime as [y, m, d, h, mi, s, nano]
+      if (Array.isArray(raw)) {
+        const ms = Date.UTC(raw[0], (raw[1] || 1) - 1, raw[2] || 1,
+            raw[3] || 0, raw[4] || 0, raw[5] || 0);
+        return isFinite(ms) ? ms : null;
+      }
+      const text = String(raw).trim();
+      const zoned = /(Z|[+-]\d{2}:?\d{2})$/.test(text) ? text : text + 'Z';
+      const ms = new Date(zoned).getTime();
+      return isFinite(ms) ? ms : null;
+    },
+    // When this alert was silenced, as [{start, end}] clipped to its firing window.
+    // end == null means it was still silenced when the window ended.
+    silencedWindows(item, firing) {
+      const now = Date.now();
+      const windowEnd = firing.end == null ? now : firing.end;
+      const notes = (item && item.notes) ? item.notes : [];
+      const events = [];
+      for (let i = 0; i < notes.length; i++) {
+        const status = this.noteStatus(notes[i].message);
+        if (status == null) { continue; }
+        const at = this.noteTime(notes[i]);
+        if (at != null) { events.push({ at: at, status: status }); }
+      }
+      // notes come back newest first, and a silence only makes sense read forwards
+      events.sort((a, b) => a.at - b.at);
+
+      const out = [];
+      let openedAt = null;
+      events.forEach(event => {
+        if (event.status == 'SILENCED') {
+          if (openedAt == null) { openedAt = event.at; }
+        } else if (openedAt != null) {
+          out.push({ start: Math.max(openedAt, firing.start), end: Math.min(event.at, windowEnd) });
+          openedAt = null;
+        }
+      });
+      if (openedAt != null) {
+        out.push({ start: Math.max(openedAt, firing.start), end: firing.end });
+      }
+
+      // The status is the truth about now, so if the notes never accounted for the
+      // alert being silenced, trust it over them. An alert already suppressed when it
+      // was first seen only gets its note on the next cycle, and lastChange is the
+      // moment its status moved.
+      if (this.isSilenced(item) && openedAt == null) {
+        const since = Number(item.lastChange);
+        out.push({
+          start: (isFinite(since) && since > firing.start) ? since : firing.start,
+          end: firing.end
+        });
+      }
+      return out.filter(w => (w.end == null ? windowEnd : w.end) > w.start);
+    },
+    // The parts of a firing window left once the silenced stretches are cut out of
+    // it. An alert silenced halfway through was genuinely notifying until then.
+    unsilencedParts(firing, silenced, now) {
+      const windowEnd = firing.end == null ? now : firing.end;
+      let parts = [{ start: firing.start, end: firing.end }];
+      silenced.forEach(quiet => {
+        const quietStart = quiet.start;
+        const quietEnd = quiet.end == null ? windowEnd : quiet.end;
+        const next = [];
+        parts.forEach(part => {
+          const partEnd = part.end == null ? windowEnd : part.end;
+          if (quietEnd <= part.start || quietStart >= partEnd) {
+            next.push(part);
+            return;
+          }
+          if (quietStart > part.start) { next.push({ start: part.start, end: quietStart }); }
+          // the tail keeps a null end, so an alert still firing after a silence
+          // ended still reads as ongoing rather than stopping at the silence
+          if (quietEnd < partEnd) { next.push({ start: quietEnd, end: part.end }); }
+        });
+        parts = next;
+      });
+      return parts.filter(part => (part.end == null ? windowEnd : part.end) > part.start);
     },
     applyClientFilters(list) {
       // Mirror the EasyDataTable filterOptions so header stats match the
@@ -1086,6 +1255,27 @@ export default {
       if (v == null) { return false; }
       const t = String(v).trim().toLowerCase();
       return t == "true" || t == "1";
+    },
+    //what jira last said about an alert's ticket. A key linked by hand carries no
+    //status until the next refresh asks about it, and unknown reads as open
+    jiraStatusOf(item) {
+      return item == null ? "" : String(item.jiraStatus || '').toLowerCase();
+    },
+    //only an open ticket is live work worth the jira blue. One that is closed, or one
+    //jira no longer has, is still worth opening but should not draw the eye
+    isJiraLive(item) {
+      const status = this.jiraStatusOf(item);
+      return status != 'closed' && status != 'notfound';
+    },
+    jiraIconColor(item) {
+      return this.isJiraLive(item) ? "#2684FF" : "#9CA3AF";
+    },
+    jiraIconTitle(item) {
+      const key = (item && item.jiraKey) ? item.jiraKey : '';
+      const status = this.jiraStatusOf(item);
+      if (status == 'closed') { return "Open jira ticket " + key + " (closed)"; }
+      if (status == 'notfound') { return "Jira has no ticket " + key; }
+      return "Open jira ticket " + key;
     },
     //link to an alert's ticket, or null when there is no ticket or no jira configured
     jiraUrl(item) {

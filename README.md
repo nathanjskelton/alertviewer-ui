@@ -1,12 +1,4 @@
 
-## Things
-- How long should an alert live without receiveing a duplicate? (default = 5m)
-- What constitutes a "dup"? Any time the end time changes?
-	- Kevin: seeing the duration and last time should be sufficient
-	- Kim: 
-	- Becky: 
-- [ ] need to be able to keep alerts that "stopped alerting" in state so that they can be reviewed.
-
 ## Bugle
 
 ```golang
@@ -35,9 +27,8 @@ func (n *Notification) String() string {
 }
 ```
 
-- [ ] Incoming: add system, favor system over env (still support env but use system if provided). still send to eventviewer as system: like it is today
-- [ ] add configurabe ability to use tcp or udp
-- [ ] insert gm_instance (from alert labels) into Alert struct and prepend to system in eventviewer message
+- [x] Incoming: add system, favor system over env (still support env but use system if provided). still send to eventviewer as system: like it is today
+- [x] add configurabe ability to use tcp or udp
 
 ## AlertManager
 ```json

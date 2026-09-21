@@ -95,9 +95,7 @@
 
   <v-navigation-drawer v-model="showDrawer" app color="purple-lighten-5" class="mt-5">
     <div class="px-2 mt-0">
-      <v-btn width=250 height=50 @click="searchAlertName=null;searchTeam=null;searchInstance=null;searchSummary=null;
-          searchEnvironment=[];panel=[];groupField=null;searchSeverity=[];
-          environments =[];statuses=['NEW','FLAPPING']" target="_blank" text style="background-color:rgba(0, 0, 0, 0.04);">
+      <v-btn width=250 height=50 @click="clearFilters()" target="_blank" text style="background-color:rgba(0, 0, 0, 0.04);">
         <span class="mr-2">Clear</span>
         <v-icon>mdi-notification-clear-all</v-icon>
       </v-btn>
@@ -117,7 +115,6 @@
         <v-card-title style="max-height: 45px" class="caption">Status</v-card-title>
           <v-checkbox style="max-height: 45px" hide-details dense v-model="statuses" label="FIRING" value="NEW" append-icon="mdi-alert-outline"></v-checkbox>
           
-          <v-checkbox style="max-height: 45px" hide-details dense v-model="statuses" label="ACKED" value="ACKED" append-icon="mdi-account-check"></v-checkbox>
           <v-checkbox style="max-height: 45px" hide-details dense v-model="statuses" label="RESOLVED" value="RESOLVED" append-icon="mdi-checkbox-marked-circle-outline"></v-checkbox>
           <v-checkbox style="margin-bottom: 10px; max-height: 45px" hide-details dense v-model="statuses" label="SILENCED" value="SILENCED" append-icon="mdi-sleep"></v-checkbox>
           
@@ -125,6 +122,10 @@
 
       <v-card class="mt-2 px-2" style="background-color:rgba(0, 0, 0, 0.04);" >
         <v-card-title style="max-height: 45px" class="caption">Attributes</v-card-title>
+        <v-checkbox style="max-height: 45px" hide-details dense v-model="statuses" label="ACKED" value="ACKED" append-icon="mdi-account-check"
+            title="An acked alert is out of the view whatever it is doing. Tick to bring them back."></v-checkbox>
+        <v-checkbox v-if="jiraEnabled" style="max-height: 45px" hide-details dense v-model="statuses" label="JIRA TICKET" value="JIRA" append-icon="mdi-jira"
+            title="An alert with a jira ticket is out of the view the same way an acked one is. Tick to bring them back."></v-checkbox>
         <v-checkbox style="max-height: 45px" hide-details dense v-model="statuses" label="FLAPPING" value="FLAPPING" append-icon="mdi-sync-alert"></v-checkbox>
         <v-checkbox style="margin-bottom: 10px; max-height: 45px" hide-details dense v-model="notCallin" label="NOT CALLIN" append-icon="mdi-phone"
             title="Ticked: show every alert. Unticked: only alerts whose callin label is true or 1."></v-checkbox>
@@ -132,7 +133,7 @@
 
       <!-- Admin only, and confirmed first: it re-reads every alert's ticket from
            the labels in jira, and can optionally drop the links no ticket claims. -->
-      <v-btn v-if="cortana_role == 'admin'" block class="mt-4" height=50
+      <v-btn v-if="cortana_role == 'admin' && jiraEnabled" block class="mt-4" height=50
           :loading="jiraRebuild.running" @click="jiraRebuild.clear = false; jiraRebuild.dialog = true"
           style="background-color:rgba(0, 0, 0, 0.04);"
           title="Re-read every alert's jira ticket from its label.">
@@ -173,7 +174,7 @@
               <div style="margin-left: 20px; font-size: 16px; font-weight: bold;">Details</div>
             </v-col>
             <v-col class="pt-0 mt-0">
-              <div style="font-weight: bold; font-size: 16px;">Notes</div>
+              <div style="margin-left: 20px; font-size: 16px; font-weight: bold;">Routing</div>
             </v-col>
           </v-row>
           <v-row>
@@ -195,7 +196,7 @@
 
                 <!-- the label this alert's ticket carries in jira, spelled exactly as it
                      appears there, so it can be pasted straight into a jira search -->
-                <div style="font-size: 12px;margin-left: 20px;margin-top: 15px;"><span style="font-weight: bold"> Jira Label: </span>
+                <div v-if="jiraEnabled" style="font-size: 12px;margin-left: 20px;margin-top: 15px;"><span style="font-weight: bold"> Jira Label: </span>
                   <span style="font-family: monospace; user-select: all;">{{jiraLabel(alertDetails.item)}}</span></div>
 
 
@@ -214,20 +215,8 @@
 
             </v-col>
             <v-col class="pt-0 mt-0" cols=8>
-              <v-list style="margin-left: 0; padding-left: 0;margin-top: 0; padding-top: 0;background-color: inherit" density="compact">
-                <v-list-item v-for="note in alertDetails.item.notes" class="mx-0 px-0">
-                  <div class="px-0 mx-0" style="font-size: 12px;"><v-chip size="small">{{ note.timestamp }}</v-chip><v-chip size="small">{{ note.user }}</v-chip> {{ note.message }} </div>
-                </v-list-item>
-              </v-list>
-
-            </v-col>
-          </v-row>
-
-          <!-- What alertmanager did with this alert. The receivers are fact, read
-               off the alert itself; the actions come from the live config. -->
-          <v-row>
-            <v-col class="pt-0 mt-0">
-              <div style="margin-left: 20px; font-size: 16px; font-weight: bold;">Routing</div>
+              <!-- What alertmanager did with this alert. The receivers are fact, read
+                   off the alert itself; the actions come from the live config. -->
               <div style="font-size: 12px; margin-left: 20px; color: #777;">
                 Receivers assigned by {{ alertDetails.item.alertmanager }}
               </div>
@@ -272,6 +261,14 @@
                 interval {{ detailsRouteDefaults(alertDetails.item).groupInterval }} &middot;
                 repeat {{ detailsRouteDefaults(alertDetails.item).repeatInterval }}
               </div>
+
+              <div style="margin-left: 20px; font-weight: bold; font-size: 16px; margin-top: 20px;">Notes</div>
+              <v-list style="margin-left: 20px; padding-left: 0;margin-top: 0; padding-top: 0;background-color: inherit" density="compact">
+                <v-list-item v-for="note in alertDetails.item.notes" class="mx-0 px-0">
+                  <div class="px-0 mx-0" style="font-size: 12px;"><v-chip size="small">{{ note.timestamp }}</v-chip><v-chip size="small">{{ note.user }}</v-chip> {{ note.message }} </div>
+                </v-list-item>
+              </v-list>
+
             </v-col>
           </v-row>
         </v-container>
@@ -733,7 +730,7 @@
       <v-expansion-panel-text >
         <EasyDataTable
           ref="dataTable"
-          :key="'tbl-' + key + '-' + sortBy + '-' + sortType"
+          :key="'tbl-' + key + '-' + sortBy + '-' + sortType + '-' + tableEpoch"
           :headers="headers"
           :items="group.list"
           :loading="loading"
@@ -785,12 +782,16 @@
 
               <table v-if="item.status != 'NEW' && !isStale(item)"><tr><td style="padding-left: 3px;">
                   <v-icon color=grey class="pb-0" v-if="item.status == 'SILENCED'">mdi-sleep</v-icon>
-                  <v-icon color=orange class="pb-0" v-if="item.status == 'ACKED'">mdi-account-check</v-icon>
                   <v-icon color=green class="pb-0" v-if="item.status == 'RESOLVED'">mdi-checkbox-marked-circle-outline</v-icon>
                   </td><td>
                   <v-icon color=red class="pb-0" v-if="item.flapping == true">mdi-sync-alert</v-icon>
                   </td></tr>
               </table>
+
+              <!-- acked is independent of the status, so it shows alongside whatever
+                   the alert is doing rather than in place of it -->
+              <v-icon color=orange v-if="item.acked" class="ml-1"
+                  title="Acked">mdi-account-check</v-icon>
 
               <v-icon v-if="getExtraAnnotations(item).length > 0" color="#EAB308"
                   class="ml-1" style="cursor: pointer;" title="View annotations"
@@ -799,8 +800,8 @@
               <v-icon v-if="isCallin(item)" color="#16A34A"
                   class="ml-1" title="Call-in alert">mdi-phone</v-icon>
 
-              <v-icon v-if="item.jiraKey" color="#2684FF"
-                  class="ml-1" style="cursor: pointer;" :title="'Open jira ticket ' + item.jiraKey"
+              <v-icon v-if="item.jiraKey" :color="jiraIconColor(item)"
+                  class="ml-1" style="cursor: pointer;" :title="jiraIconTitle(item)"
                   @click.stop="openJira(item);">mdi-jira</v-icon>
             </div>
           </template>
@@ -864,7 +865,7 @@
                         @click="alertDetails.dialog=true;alertDetails.item=item;"
                       >DETAILS</v-btn>
                     </v-list-item>
-                <v-list-item v-if="item.status == 'NEW'" >
+                <v-list-item v-if="!item.acked" >
                       <v-btn 
                         value="ACK"
                         small
@@ -874,14 +875,14 @@
                         @click="mark(item, 'ACKED')"
                       >ACK</v-btn>
                     </v-list-item>
-                    <v-list-item v-if="item.status == 'ACKED'">
+                    <v-list-item v-if="item.acked">
                       <v-btn  
                         value="UNACK"
                         small
                         style="width: 75px;color:white !important"
                         color="blue-lighten-2"
                         elevation=0
-                        @click="mark(item, 'NEW')"
+                        @click="mark(item, 'UNACKED')"
                       >UNACK</v-btn>
                     </v-list-item>
                     <v-list-item v-if="item.status == 'RESOLVED'"> 
@@ -904,7 +905,7 @@
                           @click="newSilence(item);silence.dialog = true;"
                         >SILENCE</v-btn>
                       </v-list-item>
-                      <v-list-item v-if="item.status != 'RESOLVED'" >
+                      <v-list-item v-if="jiraEnabled">
                         <v-btn 
                           value="JIRA"
                           small

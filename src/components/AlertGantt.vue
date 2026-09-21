@@ -5,6 +5,10 @@
       <span class="gantt__title">Firing {{ formatStamp(start) }} &ndash; {{ formatStamp(end) }}</span>
       <span class="gantt__sub">{{ spanLabel }} &middot; {{ rows.length }} alert{{ rows.length == 1 ? '' : 's' }}</span>
       <v-spacer></v-spacer>
+      <!-- only worth offering when the window actually holds some -->
+      <v-switch v-if="silencedCount > 0" v-model="showSilenced" hide-details density="compact"
+          color="blue-grey" class="gantt__silenced-toggle"
+          :label="(showSilenced ? 'Hide' : 'Show') + ' ' + silencedCount + ' silenced'"></v-switch>
       <v-btn size="small" variant="tonal" color="purple" prepend-icon="mdi-close" @click="$emit('close')">
         Close
       </v-btn>
@@ -19,7 +23,12 @@
     </div>
 
     <div v-if="rows.length == 0" class="gantt__empty">
-      No alerts were firing in the selected window.
+      <template v-if="silencedCount > 0">
+        Nothing was firing in the selected window except {{ silencedCount }} silenced alert{{ silencedCount == 1 ? '' : 's' }}.
+      </template>
+      <template v-else>
+        No alerts were firing in the selected window.
+      </template>
     </div>
 
     <div v-else class="gantt__body">
@@ -27,9 +36,11 @@
         <div class="gantt__grid">
           <span v-for="tick in ticks" :key="'g-' + tick.ms" class="gantt__gridline" :style="{ left: tick.pct + '%' }"></span>
         </div>
-        <div v-for="row in rows" :key="row.id" class="gantt__row">
+        <div v-for="row in rows" :key="row.id" class="gantt__row" :class="{ 'gantt__row--silenced': row.silenced }">
           <div class="gantt__label">
-            <span class="gantt__dot" :style="{ background: severityColor(row.severity) }"></span>
+            <v-icon v-if="row.silenced" size="14" color="blue-grey" class="gantt__silenced-icon"
+                title="Silenced">mdi-sleep</v-icon>
+            <span v-else class="gantt__dot" :style="{ background: severityColor(row.severity) }"></span>
             <span class="gantt__name" :title="row.alertname">{{ row.alertname }}</span>
             <span class="gantt__env" :title="row.instance">{{ row.environment || '—' }}</span>
           </div>
@@ -39,6 +50,14 @@
               :class="{ 'gantt__bar--open-left': row.clippedLeft, 'gantt__bar--open-right': row.clippedRight }"
               :style="{ left: row.leftPct + '%', width: row.widthPct + '%', background: severityColor(row.severity) }"
               :title="barTitle(row)"
+            ></div>
+            <!-- the stretches it was muted for, laid over the bar so the same row
+                 shows what was notifying and what was not -->
+            <div
+              v-for="(quiet, i) in row.silencedBars" :key="'q-' + row.id + '-' + i"
+              class="gantt__bar gantt__bar--silenced"
+              :style="{ left: quiet.leftPct + '%', width: quiet.widthPct + '%' }"
+              :title="'Silenced ' + formatStamp(quiet.start) + ' – ' + (quiet.end == null ? 'still' : formatStamp(quiet.end))"
             ></div>
           </div>
         </div>
@@ -70,7 +89,17 @@
       end: { type: Number, required: true },
     },
     emits: ['close'],
+    data() {
+      return {
+        //off by default: the window is for seeing what was actually firing
+        showSilenced: false,
+      }
+    },
     computed: {
+      // rows that were muted for the whole window, which are the ones hidden by default
+      silencedCount() {
+        return this.items.filter(item => item.silenced).length
+      },
       span() {
         return Math.max(60000, this.end - this.start)
       },
@@ -110,7 +139,8 @@
       },
       rows() {
         const now = Date.now()
-        return this.items.map(item => {
+        const visible = this.showSilenced ? this.items : this.items.filter(item => !item.silenced)
+        return visible.map(item => {
           const from = Math.max(item.start, this.start)
           const to = Math.min(item.end == null ? now : item.end, this.end)
           const leftPct = (from - this.start) / this.span * 100
@@ -120,11 +150,30 @@
             widthPct: Math.min(widthPct, 100 - leftPct),
             clippedLeft: item.start < this.start,
             clippedRight: (item.end == null ? now : item.end) > this.end,
+            silencedBars: this.silencedBars(item, now),
           })
         })
       },
     },
     methods: {
+      // Each muted stretch of one alert, clipped to the window on screen.
+      silencedBars(item, now) {
+        const out = []
+        const windows = item.silencedWindows || []
+        for (let i = 0; i < windows.length; i++) {
+          const from = Math.max(windows[i].start, this.start)
+          const to = Math.min(windows[i].end == null ? now : windows[i].end, this.end)
+          if (to <= from) { continue }
+          const leftPct = (from - this.start) / this.span * 100
+          out.push({
+            start: windows[i].start,
+            end: windows[i].end,
+            leftPct: leftPct,
+            widthPct: Math.min(Math.max(0.4, (to - from) / this.span * 100), 100 - leftPct),
+          })
+        }
+        return out
+      },
       severityColor(severity) {
         const s = (severity == null ? '' : String(severity)).toLowerCase()
         if (s == 'critical' || s == 'crit' || s == 'fatal' || s == 'emergency' || s == 'page') {
@@ -155,6 +204,11 @@
         let text = row.alertname
         if (row.instance) { text += ' @ ' + row.instance }
         text += '\n' + (row.severity || 'unknown') + ' · ' + row.status
+        if (row.silenced) {
+          text += '\nsilenced for the whole of this window'
+        } else if (row.silencedBars && row.silencedBars.length > 0) {
+          text += '\nsilenced for part of this window'
+        }
         text += '\nfired ' + this.formatStamp(row.start)
         text += '\n' + (row.end == null ? 'still firing' : 'ended ' + this.formatStamp(row.end))
         if (row.summary) { text += '\n\n' + row.summary }
@@ -307,6 +361,38 @@
 }
 .gantt__bar--open-left.gantt__bar--open-right {
   box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.55), inset -3px 0 0 rgba(255, 255, 255, 0.55);
+}
+/* A silenced alert was firing, but deliberately muted. It has to stay visibly
+   apart from live firing: faded, hatched rather than solid, and named in grey,
+   so no one reads a silenced bar as something that wanted attention. */
+.gantt__bar--silenced {
+  background: repeating-linear-gradient(
+    45deg,
+    #cbd5e1 0,
+    #cbd5e1 3px,
+    #f8fafc 3px,
+    #f8fafc 6px
+  );
+  box-shadow: inset 0 0 0 1px rgba(100, 116, 139, 0.45);
+}
+.gantt__row--silenced .gantt__name,
+.gantt__row--silenced .gantt__env {
+  color: #94a3b8;
+  font-style: italic;
+}
+.gantt__silenced-icon {
+  flex: 0 0 14px;
+}
+/* The switch sits in a flex header row built for chips and buttons. */
+.gantt__silenced-toggle {
+  flex: 0 0 auto;
+  margin-right: 12px;
+}
+.gantt__silenced-toggle :deep(.v-label) {
+  font-size: 12px;
+  opacity: 1;
+  color: #64748b;
+  white-space: nowrap;
 }
 .gantt__empty {
   padding: 24px;
